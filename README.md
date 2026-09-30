@@ -2,7 +2,11 @@
 
 **Seu dinheiro. Sob controle.**
 
-Aplicativo web (PWA) para controlar dinheiro a receber, dinheiro a pagar, empréstimos pessoais e contas — com login, banco de dados real e dados isolados por usuário.
+🔗 **App no ar:** https://mdhealthconsultoria.github.io/skeello-cash/
+
+Aplicativo web (PWA) para controlar dinheiro a receber, dinheiro a pagar, empréstimos pessoais e contas — com login, banco de dados real e dados isolados por usuário. Qualquer pessoa pode acessar o link acima, criar a própria conta e usar — os dados de cada usuário ficam isolados por RLS no Supabase.
+
+Todo push na branch `main` builda e publica automaticamente em GitHub Pages (veja [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)).
 
 ## Stack
 
