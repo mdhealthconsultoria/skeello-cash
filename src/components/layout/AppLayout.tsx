@@ -8,11 +8,11 @@ import { Logo } from '../ui/Logo'
 import { QuickAddMenu } from './QuickAddMenu'
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Início', icon: Home, end: true },
-  { to: '/pessoas', label: 'Pessoas', icon: Users, end: false },
-  { to: '/movimentacoes', label: 'Movimentações', icon: Wallet, end: false },
-  { to: '/analises', label: 'Análises', icon: BarChart3, end: false },
-  { to: '/configuracoes', label: 'Configurações', icon: Settings, end: false },
+  { to: '/dashboard', label: 'Início', shortLabel: 'Início', icon: Home, end: true },
+  { to: '/pessoas', label: 'Pessoas', shortLabel: 'Pessoas', icon: Users, end: false },
+  { to: '/movimentacoes', label: 'Movimentações', shortLabel: 'Extrato', icon: Wallet, end: false },
+  { to: '/analises', label: 'Análises', shortLabel: 'Análises', icon: BarChart3, end: false },
+  { to: '/configuracoes', label: 'Configurações', shortLabel: 'Ajustes', icon: Settings, end: false },
 ]
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -112,7 +112,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Bottom nav (mobile) */}
         <nav
-          className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-ink-950/95 backdrop-blur border-t border-ink-100 dark:border-ink-800 flex items-center justify-around"
+          className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-ink-950/95 backdrop-blur border-t border-ink-100 dark:border-ink-800 flex items-stretch"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           {NAV_ITEMS.slice(0, 2).map((item) => (
@@ -121,23 +121,25 @@ export function AppLayout({ children }: { children: ReactNode }) {
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 py-2.5 px-3 text-xs ${
+                `flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2.5 px-0.5 text-[10px] leading-tight ${
                   isActive ? 'text-ink-900 dark:text-white' : 'text-ink-400'
                 }`
               }
             >
-              <item.icon size={20} />
-              {item.label}
+              <item.icon size={19} />
+              <span className="truncate max-w-full">{item.shortLabel}</span>
             </NavLink>
           ))}
 
-          <button
-            onClick={() => setQuickAddOpen(true)}
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-ink-900 dark:bg-white text-white dark:text-ink-900 shadow-lg shadow-ink-900/30 -mt-6 active:scale-95 transition"
-            aria-label="Adicionar"
-          >
-            <Plus size={22} />
-          </button>
+          <div className="flex items-center justify-center shrink-0 w-14">
+            <button
+              onClick={() => setQuickAddOpen(true)}
+              className="flex items-center justify-center w-11 h-11 rounded-full bg-ink-900 dark:bg-white text-white dark:text-ink-900 shadow-lg shadow-ink-900/30 -mt-6 active:scale-95 transition"
+              aria-label="Adicionar"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
 
           {NAV_ITEMS.slice(2).map((item) => (
             <NavLink
@@ -145,13 +147,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 py-2.5 px-3 text-xs ${
+                `flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2.5 px-0.5 text-[10px] leading-tight ${
                   isActive ? 'text-ink-900 dark:text-white' : 'text-ink-400'
                 }`
               }
             >
-              <item.icon size={20} />
-              {item.label}
+              <item.icon size={19} />
+              <span className="truncate max-w-full">{item.shortLabel}</span>
             </NavLink>
           ))}
         </nav>
