@@ -6,6 +6,8 @@ import { Avatar } from '../ui/Avatar'
 import { usePeople } from '../../hooks/usePeople'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { sendPush } from '../../lib/push'
+import { formatPhone } from '../../lib/format'
 import type { FoundUser, Person } from '../../types/database'
 
 export function AddPersonModal({
@@ -21,7 +23,7 @@ export function AddPersonModal({
   editPerson?: Person | null
   presetUser?: FoundUser | null
 }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { createPerson, updatePerson, searchUsersByName } = usePeople()
   const [name, setName] = useState(editPerson?.name ?? presetUser?.name ?? '')
   const [nickname, setNickname] = useState(editPerson?.nickname ?? '')
@@ -123,6 +125,16 @@ export function AddPersonModal({
       return
     }
 
+    const isNewLink = linkedUserId && linkedUserId !== editPerson?.linked_user_id
+    if (isNewLink) {
+      sendPush(
+        linkedUserId,
+        `${profile?.name || 'Alguém'} está te seguindo`,
+        `Agora vocês podem cobrar e receber um do outro no Skeello Cash.`,
+        '/pessoas'
+      )
+    }
+
     toast.success(editPerson ? 'Pessoa atualizada!' : 'Pessoa adicionada!')
     onCreated?.(result.data as Person)
     onClose()
@@ -222,7 +234,14 @@ export function AddPersonModal({
           </div>
           <div>
             <label className="label">Telefone</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input" placeholder="(00) 00000-0000" />
+            <input
+              value={phone}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
+              className="input"
+              placeholder="(00) 00000-0000"
+              inputMode="tel"
+              maxLength={16}
+            />
           </div>
         </div>
         <div>

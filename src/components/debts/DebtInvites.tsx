@@ -2,21 +2,36 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Check, X, Link2 } from 'lucide-react'
 import { useDebtInvites } from '../../hooks/useDebtInvites'
+import { useAuth } from '../../contexts/AuthContext'
+import { sendPush } from '../../lib/push'
 import { Avatar } from '../ui/Avatar'
 import { formatCurrency } from '../../lib/format'
 
 export function DebtInvites() {
+  const { profile } = useAuth()
   const { invites, loading, respond } = useDebtInvites()
   const [respondingId, setRespondingId] = useState<string | null>(null)
 
   if (loading || invites.length === 0) return null
 
   async function handleRespond(id: string, accept: boolean) {
+    const invite = invites.find((i) => i.id === id)
     setRespondingId(id)
     const { error } = await respond(id, accept)
     setRespondingId(null)
-    if (error) toast.error(error)
-    else toast.success(accept ? 'Dívida compartilhada aceita!' : 'Convite recusado.')
+    if (error) {
+      toast.error(error)
+      return
+    }
+    toast.success(accept ? 'Dívida compartilhada aceita!' : 'Convite recusado.')
+    if (accept && invite) {
+      sendPush(
+        invite.user_id,
+        `${profile?.name || 'Alguém'} aceitou sua dívida compartilhada`,
+        `Confirmado: ${formatCurrency(invite.amount)}${invite.description ? ` — ${invite.description}` : ''}`,
+        '/dashboard'
+      )
+    }
   }
 
   return (

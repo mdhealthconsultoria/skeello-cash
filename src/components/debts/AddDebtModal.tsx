@@ -5,6 +5,9 @@ import { Modal } from '../ui/Modal'
 import { usePeople } from '../../hooks/usePeople'
 import { useCategories } from '../../hooks/useCategories'
 import { useDebts } from '../../hooks/useDebts'
+import { useAuth } from '../../contexts/AuthContext'
+import { sendPush } from '../../lib/push'
+import { formatCurrency } from '../../lib/format'
 import type { DebtType } from '../../types/database'
 
 export function AddDebtModal({
@@ -20,6 +23,7 @@ export function AddDebtModal({
   defaultPersonId?: string
   onCreated?: () => void
 }) {
+  const { profile } = useAuth()
   const { people } = usePeople()
   const { categories } = useCategories()
   const { createDebt } = useDebts()
@@ -69,6 +73,15 @@ export function AddDebtModal({
     if (error) {
       toast.error(error)
       return
+    }
+
+    if (isShared) {
+      sendPush(
+        selectedPerson!.linked_user_id!,
+        `${profile?.name || 'Alguém'} quer registrar uma dívida com você`,
+        `${type === 'receivable' ? 'Você deve' : 'Você tem a receber'} ${formatCurrency(parsedAmount)}${description ? ` — ${description}` : ''}`,
+        '/dashboard'
+      )
     }
 
     toast.success(

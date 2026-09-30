@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { Avatar } from '../components/ui/Avatar'
 import { exportDebtsToCsv, exportDebtsToPdf } from '../lib/export'
 import { usePwaInstall } from '../hooks/usePwaInstall'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 import { InstallAppButton } from '../components/ui/InstallAppButton'
 import type { Theme, UserSettings } from '../types/database'
 
@@ -18,6 +19,13 @@ export default function Settings() {
   const navigate = useNavigate()
   const { debts } = useDebts({ includeArchived: true })
   const { canInstall, isIosManual } = usePwaInstall()
+  const {
+    permission: pushPermission,
+    subscribed: pushSubscribed,
+    loading: pushLoading,
+    enable: enablePush,
+    disable: disablePush,
+  } = usePushNotifications()
 
   const [name, setName] = useState(profile?.name ?? '')
   const [username, setUsername] = useState(profile?.username ?? '')
@@ -253,6 +261,29 @@ export default function Settings() {
       {/* Notificações */}
       <section className="card p-5">
         <h2 className="font-semibold text-ink-900 dark:text-ink-50 mb-4">Notificações</h2>
+
+        <div className="flex items-center justify-between p-3 rounded-xl bg-ink-50 dark:bg-ink-800 mb-4">
+          <div className="min-w-0 pr-3">
+            <p className="text-sm font-medium text-ink-900 dark:text-ink-50">Notificações no celular</p>
+            <p className="text-xs text-ink-400">
+              {pushPermission === 'unsupported'
+                ? 'Seu navegador não suporta.'
+                : pushPermission === 'denied'
+                  ? 'Bloqueadas nas configurações do navegador.'
+                  : 'Avisa mesmo com o app fechado.'}
+            </p>
+          </div>
+          {pushPermission !== 'unsupported' && pushPermission !== 'denied' && (
+            <button
+              onClick={() => (pushSubscribed ? disablePush() : enablePush().then(({ error }) => error && toast.error(error)))}
+              disabled={pushLoading}
+              className={pushSubscribed ? 'btn-secondary px-3 py-1.5 text-xs shrink-0' : 'btn-primary px-3 py-1.5 text-xs shrink-0'}
+            >
+              {pushLoading ? '...' : pushSubscribed ? 'Ativado' : 'Ativar'}
+            </button>
+          )}
+        </div>
+
         <div className="space-y-3">
           <Toggle
             label="Avisar vencimentos próximos"
