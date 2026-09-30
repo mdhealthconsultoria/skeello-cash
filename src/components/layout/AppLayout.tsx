@@ -108,7 +108,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 md:px-8 py-5 md:py-8 pb-24 md:pb-8 max-w-5xl w-full mx-auto">{children}</main>
+        <main className="flex-1 px-4 md:px-8 py-5 md:py-8 pb-32 md:pb-8 max-w-5xl w-full mx-auto">{children}</main>
 
         {/* Bottom nav (mobile) */}
         <nav

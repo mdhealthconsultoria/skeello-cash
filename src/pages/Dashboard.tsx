@@ -72,10 +72,11 @@ export default function Dashboard() {
                 <Sparkles size={15} className="text-ink-900 dark:text-white" />
                 <p className="text-sm font-medium text-ink-900 dark:text-ink-50">Resumo inteligente</p>
               </div>
-              <ul className="space-y-1.5">
+              <ul className="divide-y divide-ink-100 dark:divide-ink-800">
                 {insights.map((text, i) => (
-                  <li key={i} className="text-sm text-ink-500 dark:text-ink-400">
-                    {text}
+                  <li key={i} className="flex items-start gap-2.5 py-2.5 first:pt-0 last:pb-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 shrink-0" />
+                    <span className="text-sm text-ink-600 dark:text-ink-300 leading-relaxed">{text}</span>
                   </li>
                 ))}
               </ul>

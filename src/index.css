@@ -52,7 +52,14 @@ body {
 }
 
 .card {
-  @apply bg-white dark:bg-ink-900 rounded-2xl border border-ink-100 dark:border-ink-800 shadow-sm transition-shadow duration-200;
+  /* no escuro, ink-900 chegava perto demais do preto do fundo e o card "sumia" —
+     agora tem borda mais visível + sombra própria pra sempre se destacar do body. */
+  @apply bg-white dark:bg-ink-900 rounded-2xl border border-ink-100 dark:border-ink-700/60 shadow-sm dark:shadow-none transition-shadow duration-200;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.dark .card {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .btn-primary {
