@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Skeello Cash</title>
+    <script>
+      // GitHub Pages não tem rewrite de servidor para SPA — isso redireciona
+      // qualquer rota direta (ex: /skeello-cash/dashboard) de volta pro index.html,
+      // preservando o caminho, pra o React Router assumir a partir daí.
+      var pathSegmentsToKeep = 1 // /skeello-cash/
+      var l = window.location
+      var path = l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/')
+      var rest = l.pathname.slice(path.length)
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + path + '/?p=' +
+        rest.replace(/&/g, '~and~') + (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') + l.hash
+      )
+    </script>
+  </head>
+  <body></body>
+</html>

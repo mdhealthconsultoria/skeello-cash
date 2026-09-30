@@ -31,7 +31,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Toaster position="top-center" toastOptions={{ style: { fontSize: '14px' } }} />
           <Routes>
             <Route path="/" element={<RootRedirect />} />
