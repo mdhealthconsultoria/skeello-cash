@@ -76,6 +76,7 @@ $$;
 grant execute on function public.is_username_available(text) to authenticated;
 
 -- busca agora aceita nome OU @usuário
+drop function if exists public.search_users_by_name(text);
 create or replace function public.search_users_by_name(p_query text)
 returns table(id uuid, name text, avatar_url text, username text)
 language sql
@@ -92,6 +93,7 @@ as $$
   limit 10;
 $$;
 
+drop function if exists public.find_user_by_email(text);
 create or replace function public.find_user_by_email(p_email text)
 returns table(id uuid, name text, avatar_url text, username text)
 language sql
@@ -106,6 +108,7 @@ as $$
   limit 1;
 $$;
 
+drop function if exists public.list_users(int, int);
 create or replace function public.list_users(p_limit int default 30, p_offset int default 0)
 returns table(id uuid, name text, avatar_url text, username text)
 language sql
