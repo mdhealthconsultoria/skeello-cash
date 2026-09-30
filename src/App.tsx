@@ -21,6 +21,7 @@ import SearchPage from './pages/Search'
 import BankConnections from './pages/BankConnections'
 import Community from './pages/Community'
 import Notifications from './pages/Notifications'
+import Admin from './pages/Admin'
 import { Navigate } from 'react-router-dom'
 
 function RootRedirect() {
@@ -136,6 +137,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
                 </ProtectedRoute>
               }
             />

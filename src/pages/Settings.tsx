@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Download, FileText, LogOut, Moon, Sun, Monitor, Trash2, Landmark, ChevronRight, Smartphone } from 'lucide-react'
+import { Camera, Download, FileText, LogOut, Moon, Sun, Monitor, Trash2, Landmark, ChevronRight, Smartphone, ShieldCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -241,6 +241,25 @@ export default function Settings() {
         </div>
         <ChevronRight size={18} className="text-ink-300" />
       </button>
+
+      {/* Painel admin — só aparece pra quem é admin (o backend também bloqueia) */}
+      {profile?.is_admin && (
+        <button
+          onClick={() => navigate('/admin')}
+          className="card p-5 w-full flex items-center justify-between text-left hover:shadow-md transition"
+        >
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-ink-100 dark:bg-ink-800 flex items-center justify-center text-ink-700 dark:text-ink-300">
+              <ShieldCheck size={18} />
+            </span>
+            <div>
+              <p className="font-semibold text-ink-900 dark:text-ink-50">Painel administrativo</p>
+              <p className="text-xs text-ink-400">Visão geral de todos os usuários e dívidas</p>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-ink-300" />
+        </button>
+      )}
 
       {/* Instalar app */}
       {(canInstall || isIosManual) && (

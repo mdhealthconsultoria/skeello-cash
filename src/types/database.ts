@@ -10,6 +10,7 @@ export interface Profile {
   username: string
   avatar_url: string | null
   currency: string
+  is_admin: boolean
   created_at: string
 }
 
@@ -116,4 +117,20 @@ export interface FoundUser {
 export interface PendingInvite extends Debt {
   inviter_name: string
   inviter_avatar_url: string | null
+}
+
+export interface AdminOverview {
+  total_users: number
+  total_receivable: number
+  total_payable: number
+}
+
+export interface AdminUserRow {
+  id: string
+  name: string
+  email: string
+  username: string
+  created_at: string
+  total_receivable: number
+  total_payable: number
 }
