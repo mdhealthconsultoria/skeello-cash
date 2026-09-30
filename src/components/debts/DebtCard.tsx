@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Link2, Clock } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { StatusBadge } from '../ui/StatusBadge'
 import { formatCurrency, formatDate, daysUntil } from '../../lib/format'
@@ -26,8 +26,19 @@ export function DebtCard({ debt, onClick, onRegisterPayment }: { debt: DebtWithR
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-medium text-ink-900 dark:text-ink-50 truncate">{debt.person.name}</p>
+              <p className="font-medium text-ink-900 dark:text-ink-50 truncate flex items-center gap-1.5">
+                {debt.person.name}
+                {debt.share_status === 'accepted' && (
+                  <Link2 size={12} className="text-brand-500 shrink-0" />
+                )}
+                {debt.share_status === 'pending' && (
+                  <Clock size={12} className="text-amber-500 shrink-0" />
+                )}
+              </p>
               {debt.description && <p className="text-xs text-ink-400 truncate">{debt.description}</p>}
+              {debt.share_status === 'pending' && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">Aguardando confirmação</p>
+              )}
             </div>
             <StatusBadge status={debt.status} />
           </div>

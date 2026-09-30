@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useDashboard } from '../hooks/useDashboard'
 import { formatCurrency } from '../lib/format'
 import { DebtCard } from '../components/debts/DebtCard'
+import { DebtInvites } from '../components/debts/DebtInvites'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
@@ -32,6 +33,8 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-50">Olá, {firstName} 👋</h1>
         <p className="text-ink-400 text-sm mt-0.5">Veja como está sua vida financeira.</p>
       </div>
+
+      <DebtInvites />
 
       {loading || !summary ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

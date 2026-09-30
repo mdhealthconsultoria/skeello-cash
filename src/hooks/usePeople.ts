@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { Person } from '../types/database'
+import type { FoundUser, Person } from '../types/database'
 
 export function usePeople(includeArchived = false) {
   const { user } = useAuth()
@@ -56,5 +56,22 @@ export function usePeople(includeArchived = false) {
     return { error: err?.message ?? null }
   }
 
-  return { people, loading, error, refetch: fetchPeople, createPerson, updatePerson, archivePerson, deletePerson }
+  async function findUserByEmail(email: string) {
+    const { data, error: err } = await supabase.rpc('find_user_by_email', { p_email: email })
+    if (err) return { user: null, error: err.message }
+    const found = (data as FoundUser[])?.[0] ?? null
+    return { user: found, error: found ? null : 'Nenhum usuário do Skeello Cash encontrado com esse e-mail.' }
+  }
+
+  return {
+    people,
+    loading,
+    error,
+    refetch: fetchPeople,
+    createPerson,
+    updatePerson,
+    archivePerson,
+    deletePerson,
+    findUserByEmail,
+  }
 }

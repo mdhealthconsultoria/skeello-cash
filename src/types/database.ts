@@ -1,5 +1,6 @@
 export type DebtType = 'receivable' | 'payable'
 export type DebtStatus = 'pending' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled'
+export type ShareStatus = 'none' | 'pending' | 'accepted' | 'declined'
 export type Theme = 'light' | 'dark' | 'system'
 
 export interface Profile {
@@ -42,6 +43,7 @@ export interface Person {
   notes: string | null
   photo_url: string | null
   archived: boolean
+  linked_user_id: string | null
   created_at: string
   updated_at: string
 }
@@ -61,6 +63,9 @@ export interface Debt {
   status: DebtStatus
   notes: string | null
   archived: boolean
+  counterparty_user_id: string | null
+  share_status: ShareStatus
+  mirror_debt_id: string | null
   created_at: string
   updated_at: string
 }
@@ -98,4 +103,15 @@ export interface DebtWithRelations extends Debt {
   category: Category | null
   totals: DebtTotals
   payments?: Payment[]
+}
+
+export interface FoundUser {
+  id: string
+  name: string
+  avatar_url: string | null
+}
+
+export interface PendingInvite extends Debt {
+  inviter_name: string
+  inviter_avatar_url: string | null
 }

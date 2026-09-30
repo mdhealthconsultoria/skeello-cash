@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import toast from 'react-hot-toast'
+import { Link2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { usePeople } from '../../hooks/usePeople'
 import { useCategories } from '../../hooks/useCategories'
@@ -34,6 +35,9 @@ export function AddDebtModal({
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const selectedPerson = useMemo(() => people.find((p) => p.id === personId), [people, personId])
+  const isShared = Boolean(selectedPerson?.linked_user_id)
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!personId) {
@@ -57,6 +61,8 @@ export function AddDebtModal({
       agreed_payment_method: method || null,
       installments,
       notes: notes || null,
+      counterparty_user_id: isShared ? selectedPerson!.linked_user_id : null,
+      share_status: isShared ? 'pending' : 'none',
     })
     setLoading(false)
 
@@ -65,7 +71,13 @@ export function AddDebtModal({
       return
     }
 
-    toast.success(type === 'receivable' ? 'Dívida a receber adicionada!' : 'Conta a pagar adicionada!')
+    toast.success(
+      isShared
+        ? `Convite enviado para ${selectedPerson!.name} confirmar!`
+        : type === 'receivable'
+          ? 'Dívida a receber adicionada!'
+          : 'Conta a pagar adicionada!'
+    )
     onCreated?.()
     onClose()
     setAmount('')
@@ -105,11 +117,17 @@ export function AddDebtModal({
             {people.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
+                {p.linked_user_id ? ' ✓' : ''}
               </option>
             ))}
           </select>
           {people.length === 0 && (
             <p className="text-xs text-ink-400 mt-1">Cadastre uma pessoa primeiro em "Pessoas".</p>
+          )}
+          {isShared && (
+            <p className="text-xs text-brand-600 dark:text-brand-400 mt-1.5 flex items-center gap-1">
+              <Link2 size={12} /> {selectedPerson!.name} tem conta no Skeello Cash — essa dívida vai virar um convite pra ela confirmar, e depois fica sincronizada dos dois lados.
+            </p>
           )}
         </div>
 
@@ -164,7 +182,7 @@ export function AddDebtModal({
         </div>
 
         <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">
-          {loading ? 'Salvando...' : 'Salvar'}
+          {loading ? 'Salvando...' : isShared ? 'Enviar convite' : 'Salvar'}
         </button>
       </form>
     </Modal>
