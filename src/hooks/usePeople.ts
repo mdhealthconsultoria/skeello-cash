@@ -63,6 +63,13 @@ export function usePeople(includeArchived = false) {
     return { user: found, error: found ? null : 'Nenhum usuário do Skeello Cash encontrado com esse e-mail.' }
   }
 
+  async function searchUsersByName(query: string) {
+    if (query.trim().length < 2) return { users: [] as FoundUser[], error: null }
+    const { data, error: err } = await supabase.rpc('search_users_by_name', { p_query: query })
+    if (err) return { users: [] as FoundUser[], error: err.message }
+    return { users: (data as FoundUser[]) ?? [], error: null }
+  }
+
   return {
     people,
     loading,
@@ -73,5 +80,6 @@ export function usePeople(includeArchived = false) {
     archivePerson,
     deletePerson,
     findUserByEmail,
+    searchUsersByName,
   }
 }

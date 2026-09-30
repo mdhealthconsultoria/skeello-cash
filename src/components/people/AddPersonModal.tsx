@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import toast from 'react-hot-toast'
-import { Camera, Search, Link2, X, CheckCircle2 } from 'lucide-react'
+import { Camera, Link2, X, CheckCircle2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { Avatar } from '../ui/Avatar'
 import { usePeople } from '../../hooks/usePeople'
@@ -20,7 +20,7 @@ export function AddPersonModal({
   editPerson?: Person | null
 }) {
   const { user } = useAuth()
-  const { createPerson, updatePerson, findUserByEmail } = usePeople()
+  const { createPerson, updatePerson, searchUsersByName } = usePeople()
   const [name, setName] = useState(editPerson?.name ?? '')
   const [nickname, setNickname] = useState(editPerson?.nickname ?? '')
   const [phone, setPhone] = useState(editPerson?.phone ?? '')
@@ -30,10 +30,35 @@ export function AddPersonModal({
   const [photoPreview, setPhotoPreview] = useState<string | null>(editPerson?.photo_url ?? null)
   const [loading, setLoading] = useState(false)
 
+  const [results, setResults] = useState<FoundUser[]>([])
   const [searching, setSearching] = useState(false)
+  const [showResults, setShowResults] = useState(false)
   const [linkedUser, setLinkedUser] = useState<FoundUser | null>(null)
   const [linkedUserId, setLinkedUserId] = useState<string | null>(editPerson?.linked_user_id ?? null)
-  const [searchTried, setSearchTried] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (linkedUser) {
+      setShowResults(false)
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (name.trim().length < 2) {
+      setResults([])
+      return
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true)
+      const { users } = await searchUsersByName(name)
+      setSearching(false)
+      setResults(users)
+      setShowResults(true)
+    }, 350)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, linkedUser])
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -42,32 +67,18 @@ export function AddPersonModal({
     setPhotoPreview(URL.createObjectURL(file))
   }
 
-  async function handleSearchUser() {
-    if (!email.trim()) {
-      toast.error('Digite o e-mail da pessoa pra buscar.')
-      return
-    }
-    setSearching(true)
-    setSearchTried(false)
-    const { user: found, error } = await findUserByEmail(email.trim())
-    setSearching(false)
-    setSearchTried(true)
-    if (found) {
-      setLinkedUser(found)
-      setLinkedUserId(found.id)
-      if (!photoFile && found.avatar_url) setPhotoPreview(found.avatar_url)
-      if (!name.trim()) setName(found.name)
-    } else {
-      setLinkedUser(null)
-      setLinkedUserId(null)
-      if (error) toast.error(error)
-    }
+  function selectUser(found: FoundUser) {
+    setLinkedUser(found)
+    setLinkedUserId(found.id)
+    setName(found.name)
+    if (!photoFile) setPhotoPreview(found.avatar_url)
+    setShowResults(false)
   }
 
   function unlink() {
     setLinkedUser(null)
     setLinkedUserId(null)
-    setSearchTried(false)
+    setResults([])
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -138,10 +149,65 @@ export function AddPersonModal({
           </label>
         </div>
 
-        <div>
+        <div className="relative">
           <label className="label">Nome *</label>
-          <input required value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Nome completo" />
+          <input
+            required
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+              if (linkedUser) unlink()
+            }}
+            onFocus={() => results.length > 0 && !linkedUser && setShowResults(true)}
+            className="input"
+            placeholder="Nome completo"
+            autoComplete="off"
+          />
+          {searching && (
+            <span className="absolute right-3 top-9 w-4 h-4 border-2 border-ink-300 border-t-transparent rounded-full animate-spin" />
+          )}
+
+          {showResults && results.length > 0 && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl shadow-lg overflow-hidden">
+              <p className="px-3 pt-2 pb-1 text-[11px] text-ink-400 uppercase tracking-wide">Usuários do Skeello Cash</p>
+              {results.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => selectUser(r)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-ink-50 dark:hover:bg-ink-800 text-left"
+                >
+                  <Avatar src={r.avatar_url} name={r.name} size="sm" />
+                  <span className="text-sm text-ink-900 dark:text-ink-50 truncate">{r.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {linkedUser && (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20">
+            <Avatar src={linkedUser.avatar_url} name={linkedUser.name} size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-ink-900 dark:text-ink-50 truncate flex items-center gap-1">
+                <CheckCircle2 size={12} className="text-brand-600 dark:text-brand-400 shrink-0" />
+                Vinculado à conta de {linkedUser.name}
+              </p>
+              <p className="text-[11px] text-ink-400">
+                Vocês vão poder cobrar/receber um do outro — a outra pessoa é avisada e confirma.
+              </p>
+            </div>
+            <button type="button" onClick={unlink} className="p-1 text-ink-400 hover:text-red-600 shrink-0">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        {!linkedUser && (
+          <p className="text-xs text-ink-400 -mt-2 flex items-center gap-1">
+            <Link2 size={12} /> Digitando o nome, mostramos quem já usa o Skeello Cash pra vincular.
+          </p>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Apelido</label>
@@ -152,54 +218,10 @@ export function AddPersonModal({
             <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input" placeholder="(00) 00000-0000" />
           </div>
         </div>
-
         <div>
           <label className="label">E-mail</label>
-          <div className="flex gap-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                if (linkedUserId) unlink()
-              }}
-              className="input flex-1"
-              placeholder="voce@email.com"
-            />
-            <button
-              type="button"
-              onClick={handleSearchUser}
-              disabled={searching}
-              className="btn-secondary px-3 shrink-0"
-              title="Buscar conta no Skeello Cash"
-            >
-              {searching ? <span className="w-4 h-4 border-2 border-ink-400 border-t-transparent rounded-full animate-spin" /> : <Search size={15} />}
-            </button>
-          </div>
-
-          {linkedUser ? (
-            <div className="mt-2 flex items-center gap-2 p-2.5 rounded-xl bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20">
-              <Avatar src={linkedUser.avatar_url} name={linkedUser.name} size="sm" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-ink-900 dark:text-ink-50 truncate flex items-center gap-1">
-                  <CheckCircle2 size={12} className="text-brand-600 dark:text-brand-400 shrink-0" />
-                  Vinculado a {linkedUser.name}
-                </p>
-                <p className="text-[11px] text-ink-400">Dívidas com essa pessoa poderão ser compartilhadas e confirmadas por ela.</p>
-              </div>
-              <button type="button" onClick={unlink} className="p-1 text-ink-400 hover:text-red-600 shrink-0">
-                <X size={14} />
-              </button>
-            </div>
-          ) : searchTried ? (
-            <p className="text-xs text-ink-400 mt-1.5 flex items-center gap-1">
-              <Link2 size={12} /> Ninguém com esse e-mail usa o Skeello Cash ainda — tudo bem, fica só como contato.
-            </p>
-          ) : (
-            <p className="text-xs text-ink-400 mt-1.5">Se essa pessoa também usa o Skeello Cash, busque pra vincular a conta dela.</p>
-          )}
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" placeholder="Opcional" />
         </div>
-
         <div>
           <label className="label">Observações</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input resize-none" rows={2} />
