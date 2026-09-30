@@ -45,7 +45,10 @@ export default function Community() {
             {users.map((u) => (
               <div key={u.id} className="card p-3.5 flex items-center gap-3">
                 <Avatar src={u.avatar_url} name={u.name} />
-                <p className="flex-1 min-w-0 font-medium text-ink-900 dark:text-ink-50 truncate">{u.name}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-ink-900 dark:text-ink-50 truncate">{u.name}</p>
+                  <p className="text-xs text-ink-400 truncate">@{u.username}</p>
+                </div>
                 <button
                   onClick={() => setAddTarget(u)}
                   className="btn-secondary px-3 py-1.5 text-xs shrink-0"

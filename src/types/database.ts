@@ -7,6 +7,7 @@ export interface Profile {
   id: string
   name: string
   email: string
+  username: string
   avatar_url: string | null
   currency: string
   created_at: string
@@ -109,6 +110,7 @@ export interface FoundUser {
   id: string
   name: string
   avatar_url: string | null
+  username: string
 }
 
 export interface PendingInvite extends Debt {

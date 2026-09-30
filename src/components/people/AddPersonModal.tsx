@@ -182,7 +182,10 @@ export function AddPersonModal({
                   className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-ink-50 dark:hover:bg-ink-800 text-left"
                 >
                   <Avatar src={r.avatar_url} name={r.name} size="sm" />
-                  <span className="text-sm text-ink-900 dark:text-ink-50 truncate">{r.name}</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm text-ink-900 dark:text-ink-50 truncate">{r.name}</span>
+                    <span className="block text-xs text-ink-400 truncate">@{r.username}</span>
+                  </span>
                 </button>
               ))}
             </div>
@@ -195,7 +198,7 @@ export function AddPersonModal({
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-ink-900 dark:text-ink-50 truncate flex items-center gap-1">
                 <CheckCircle2 size={12} className="text-brand-600 dark:text-brand-400 shrink-0" />
-                Vinculado à conta de {linkedUser.name}
+                Seguindo @{linkedUser.username}
               </p>
               <p className="text-[11px] text-ink-400">
                 Vocês vão poder cobrar/receber um do outro — a outra pessoa é avisada e confirma.
@@ -208,7 +211,7 @@ export function AddPersonModal({
         )}
         {!linkedUser && (
           <p className="text-xs text-ink-400 -mt-2 flex items-center gap-1">
-            <Link2 size={12} /> Digitando o nome, mostramos quem já usa o Skeello Cash pra vincular.
+            <Link2 size={12} /> Digite o nome ou @usuário pra achar e seguir quem já usa o Skeello Cash.
           </p>
         )}
 

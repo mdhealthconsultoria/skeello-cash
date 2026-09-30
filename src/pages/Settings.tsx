@@ -20,6 +20,8 @@ export default function Settings() {
   const { canInstall, isIosManual } = usePwaInstall()
 
   const [name, setName] = useState(profile?.name ?? '')
+  const [username, setUsername] = useState(profile?.username ?? '')
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle')
   const [photoPreview, setPhotoPreview] = useState<string | null>(profile?.avatar_url ?? null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -31,8 +33,27 @@ export default function Settings() {
 
   useEffect(() => {
     setName(profile?.name ?? '')
+    setUsername(profile?.username ?? '')
     setPhotoPreview(profile?.avatar_url ?? null)
   }, [profile])
+
+  useEffect(() => {
+    const clean = username.trim().toLowerCase()
+    if (!clean || clean === profile?.username) {
+      setUsernameStatus('idle')
+      return
+    }
+    if (!/^[a-z0-9_]{3,20}$/.test(clean)) {
+      setUsernameStatus('invalid')
+      return
+    }
+    setUsernameStatus('checking')
+    const timeout = setTimeout(async () => {
+      const { data } = await supabase.rpc('is_username_available', { p_username: clean })
+      setUsernameStatus(data ? 'available' : 'taken')
+    }, 400)
+    return () => clearTimeout(timeout)
+  }, [username, profile?.username])
 
   useEffect(() => {
     if (!user) return
@@ -54,6 +75,17 @@ export default function Settings() {
   async function saveProfile(e: FormEvent) {
     e.preventDefault()
     if (!user) return
+
+    const cleanUsername = username.trim().toLowerCase()
+    if (usernameStatus === 'invalid') {
+      toast.error('@usuário precisa ter 3-20 letras minúsculas, números ou _.')
+      return
+    }
+    if (usernameStatus === 'taken') {
+      toast.error('Esse @usuário já está em uso.')
+      return
+    }
+
     setSavingProfile(true)
 
     let avatarUrl = profile?.avatar_url ?? null
@@ -67,7 +99,10 @@ export default function Settings() {
       }
     }
 
-    const { error } = await supabase.from('profiles').update({ name, avatar_url: avatarUrl }).eq('id', user.id)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name, avatar_url: avatarUrl, username: cleanUsername || profile?.username })
+      .eq('id', user.id)
     setSavingProfile(false)
     if (error) {
       toast.error(error.message)
@@ -127,6 +162,23 @@ export default function Settings() {
           <div>
             <label className="label">Nome</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className="input" />
+          </div>
+          <div>
+            <label className="label">@usuário</label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 text-base">@</span>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                className="input pl-7"
+                placeholder="seu_usuario"
+                maxLength={20}
+              />
+            </div>
+            {usernameStatus === 'checking' && <p className="text-xs text-ink-400 mt-1">Verificando...</p>}
+            {usernameStatus === 'available' && <p className="text-xs text-brand-600 dark:text-brand-400 mt-1">Disponível!</p>}
+            {usernameStatus === 'taken' && <p className="text-xs text-red-600 mt-1">Esse @usuário já está em uso.</p>}
+            {usernameStatus === 'invalid' && <p className="text-xs text-red-600 mt-1">3-20 caracteres: letras, números ou _.</p>}
           </div>
           <div>
             <label className="label">E-mail</label>
