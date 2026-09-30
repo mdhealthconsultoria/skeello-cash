@@ -13,28 +13,30 @@ export function AddPersonModal({
   onClose,
   onCreated,
   editPerson,
+  presetUser,
 }: {
   open: boolean
   onClose: () => void
   onCreated?: (person: Person) => void
   editPerson?: Person | null
+  presetUser?: FoundUser | null
 }) {
   const { user } = useAuth()
   const { createPerson, updatePerson, searchUsersByName } = usePeople()
-  const [name, setName] = useState(editPerson?.name ?? '')
+  const [name, setName] = useState(editPerson?.name ?? presetUser?.name ?? '')
   const [nickname, setNickname] = useState(editPerson?.nickname ?? '')
   const [phone, setPhone] = useState(editPerson?.phone ?? '')
   const [email, setEmail] = useState(editPerson?.email ?? '')
   const [notes, setNotes] = useState(editPerson?.notes ?? '')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(editPerson?.photo_url ?? null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(editPerson?.photo_url ?? presetUser?.avatar_url ?? null)
   const [loading, setLoading] = useState(false)
 
   const [results, setResults] = useState<FoundUser[]>([])
   const [searching, setSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
-  const [linkedUser, setLinkedUser] = useState<FoundUser | null>(null)
-  const [linkedUserId, setLinkedUserId] = useState<string | null>(editPerson?.linked_user_id ?? null)
+  const [linkedUser, setLinkedUser] = useState<FoundUser | null>(presetUser ?? null)
+  const [linkedUserId, setLinkedUserId] = useState<string | null>(editPerson?.linked_user_id ?? presetUser?.id ?? null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -168,8 +170,10 @@ export function AddPersonModal({
           )}
 
           {showResults && results.length > 0 && (
-            <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl shadow-lg overflow-hidden">
-              <p className="px-3 pt-2 pb-1 text-[11px] text-ink-400 uppercase tracking-wide">Usuários do Skeello Cash</p>
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+              <p className="px-3 pt-2 pb-1 text-[11px] text-ink-400 uppercase tracking-wide sticky top-0 bg-white dark:bg-ink-900">
+                Usuários do Skeello Cash
+              </p>
               {results.map((r) => (
                 <button
                   key={r.id}

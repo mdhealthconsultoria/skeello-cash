@@ -92,7 +92,7 @@ export interface Notification {
   id: string
   user_id: string
   debt_id: string | null
-  type: 'due_today' | 'due_soon' | 'overdue' | 'summary'
+  type: 'due_today' | 'due_soon' | 'overdue' | 'summary' | 'debt_invite' | 'debt_accepted' | 'contact_added'
   message: string
   read: boolean
   created_at: string

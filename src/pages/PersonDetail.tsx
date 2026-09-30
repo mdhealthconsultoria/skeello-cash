@@ -106,7 +106,7 @@ export default function PersonDetail() {
             }}
             className="btn-primary py-2 text-sm"
           >
-            <Plus size={14} /> A receber
+            <Plus size={14} /> Cobrar {person.name.split(' ')[0]}
           </button>
           <button
             onClick={() => {
@@ -115,7 +115,7 @@ export default function PersonDetail() {
             }}
             className="btn-secondary py-2 text-sm"
           >
-            <Plus size={14} /> A pagar
+            <Plus size={14} /> Pagar {person.name.split(' ')[0]}
           </button>
         </div>
 

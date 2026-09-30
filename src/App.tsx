@@ -19,6 +19,8 @@ import Settings from './pages/Settings'
 import UpcomingDue from './pages/UpcomingDue'
 import SearchPage from './pages/Search'
 import BankConnections from './pages/BankConnections'
+import Community from './pages/Community'
+import Notifications from './pages/Notifications'
 import { Navigate } from 'react-router-dom'
 
 function RootRedirect() {
@@ -118,6 +120,22 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <BankConnections />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comunidade"
+              element={
+                <ProtectedRoute>
+                  <Community />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notificacoes"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
                 </ProtectedRoute>
               }
             />

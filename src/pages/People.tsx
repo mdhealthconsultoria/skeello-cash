@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Plus, Archive } from 'lucide-react'
+import { Plus, Archive, Users } from 'lucide-react'
 import { usePeople } from '../hooks/usePeople'
 import { useDebts } from '../hooks/useDebts'
 import { Avatar } from '../components/ui/Avatar'
@@ -38,6 +38,9 @@ export default function People() {
           <p className="text-ink-400 text-sm">Quem está envolvido nas suas movimentações</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => navigate('/comunidade')} className="btn-secondary px-3 py-2" title="Pessoas no Skeello Cash">
+            <Users size={16} />
+          </button>
           <button onClick={() => navigate('/pessoas/arquivadas')} className="btn-secondary px-3 py-2" title="Arquivadas">
             <Archive size={16} />
           </button>
@@ -47,6 +50,19 @@ export default function People() {
           </button>
         </div>
       </div>
+
+      <button
+        onClick={() => navigate('/comunidade')}
+        className="w-full card p-3.5 flex items-center gap-3 text-left hover:shadow-md transition"
+      >
+        <span className="w-9 h-9 rounded-xl bg-ink-100 dark:bg-ink-800 flex items-center justify-center text-ink-700 dark:text-ink-300 shrink-0">
+          <Users size={16} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-ink-900 dark:text-ink-50">Descobrir pessoas no app</p>
+          <p className="text-xs text-ink-400">Veja quem mais usa o Skeello Cash e adicione direto</p>
+        </div>
+      </button>
 
       {loading ? (
         <div className="grid sm:grid-cols-2 gap-3">
