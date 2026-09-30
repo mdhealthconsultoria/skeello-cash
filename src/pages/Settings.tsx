@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Download, FileText, LogOut, Moon, Sun, Monitor, Trash2, Landmark, ChevronRight } from 'lucide-react'
+import { Camera, Download, FileText, LogOut, Moon, Sun, Monitor, Trash2, Landmark, ChevronRight, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -8,6 +8,8 @@ import { useDebts } from '../hooks/useDebts'
 import { supabase } from '../lib/supabase'
 import { Avatar } from '../components/ui/Avatar'
 import { exportDebtsToCsv, exportDebtsToPdf } from '../lib/export'
+import { usePwaInstall } from '../hooks/usePwaInstall'
+import { InstallAppButton } from '../components/ui/InstallAppButton'
 import type { Theme, UserSettings } from '../types/database'
 
 export default function Settings() {
@@ -15,6 +17,7 @@ export default function Settings() {
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const { debts } = useDebts({ includeArchived: true })
+  const { canInstall, isIosManual } = usePwaInstall()
 
   const [name, setName] = useState(profile?.name ?? '')
   const [photoPreview, setPhotoPreview] = useState<string | null>(profile?.avatar_url ?? null)
@@ -178,6 +181,22 @@ export default function Settings() {
         </div>
         <ChevronRight size={18} className="text-ink-300" />
       </button>
+
+      {/* Instalar app */}
+      {(canInstall || isIosManual) && (
+        <section className="card p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-10 h-10 rounded-xl bg-ink-100 dark:bg-ink-800 flex items-center justify-center text-ink-700 dark:text-ink-300">
+              <Smartphone size={18} />
+            </span>
+            <div>
+              <p className="font-semibold text-ink-900 dark:text-ink-50">Instalar app</p>
+              <p className="text-xs text-ink-400">Acesse o Skeello Cash como um app, direto da tela inicial</p>
+            </div>
+          </div>
+          <InstallAppButton />
+        </section>
+      )}
 
       {/* Notificações */}
       <section className="card p-5">
