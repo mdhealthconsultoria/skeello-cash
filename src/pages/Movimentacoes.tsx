@@ -23,6 +23,7 @@ export default function Movimentacoes() {
   const [addOpen, setAddOpen] = useState(false)
   const [addType, setAddType] = useState<DebtType>('receivable')
   const [paymentDebt, setPaymentDebt] = useState<DebtWithRelations | null>(null)
+  const [editingDebt, setEditingDebt] = useState<DebtWithRelations | null>(null)
 
   useEffect(() => {
     const state = location.state as { openAdd?: DebtType } | null
@@ -135,12 +136,14 @@ export default function Movimentacoes() {
               debt={d}
               onClick={() => navigate(`/pessoas/${d.person_id}`)}
               onRegisterPayment={() => setPaymentDebt(d)}
+              onEdit={() => setEditingDebt(d)}
             />
           ))}
         </div>
       )}
 
       <AddDebtModal open={addOpen} onClose={() => setAddOpen(false)} defaultType={addType} />
+      <AddDebtModal open={!!editingDebt} onClose={() => setEditingDebt(null)} editDebt={editingDebt} />
       <RegisterPaymentModal open={!!paymentDebt} onClose={() => setPaymentDebt(null)} debt={paymentDebt} />
     </div>
   )

@@ -1,10 +1,20 @@
-import { ArrowRight, Link2, Clock } from 'lucide-react'
+import { ArrowRight, Link2, Clock, Pencil } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { StatusBadge } from '../ui/StatusBadge'
 import { formatCurrency, formatDate, daysUntil } from '../../lib/format'
 import type { DebtWithRelations } from '../../types/database'
 
-export function DebtCard({ debt, onClick, onRegisterPayment }: { debt: DebtWithRelations; onClick?: () => void; onRegisterPayment?: () => void }) {
+export function DebtCard({
+  debt,
+  onClick,
+  onRegisterPayment,
+  onEdit,
+}: {
+  debt: DebtWithRelations
+  onClick?: () => void
+  onRegisterPayment?: () => void
+  onEdit?: () => void
+}) {
   const remaining = debt.totals.remaining_amount
   const isReceivable = debt.type === 'receivable'
   const days = daysUntil(debt.due_date)
@@ -40,7 +50,21 @@ export function DebtCard({ debt, onClick, onRegisterPayment }: { debt: DebtWithR
                 <p className="text-[11px] text-amber-600 dark:text-amber-400">Aguardando confirmação</p>
               )}
             </div>
-            <StatusBadge status={debt.status} />
+            <div className="flex items-center gap-2 shrink-0">
+              <StatusBadge status={debt.status} />
+              {onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit()
+                  }}
+                  className="p-1 text-ink-400 hover:text-ink-900 dark:hover:text-white transition"
+                  title="Editar"
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-end justify-between mt-3">
