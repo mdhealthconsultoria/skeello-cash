@@ -21,6 +21,7 @@ export default function PersonDetail() {
   const [editOpen, setEditOpen] = useState(false)
   const [addDebtOpen, setAddDebtOpen] = useState(false)
   const [addDebtType, setAddDebtType] = useState<'receivable' | 'payable'>('receivable')
+  const [editingDebt, setEditingDebt] = useState<DebtWithRelations | null>(null)
   const [paymentDebt, setPaymentDebt] = useState<DebtWithRelations | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -132,8 +133,8 @@ export default function PersonDetail() {
         </div>
       </div>
 
-      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} />
-      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} />
+      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} onEdit={setEditingDebt} />
+      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} onEdit={setEditingDebt} />
 
       <AddPersonModal open={editOpen} onClose={() => setEditOpen(false)} editPerson={person} />
       <AddDebtModal
@@ -142,6 +143,7 @@ export default function PersonDetail() {
         defaultType={addDebtType}
         defaultPersonId={person.id}
       />
+      <AddDebtModal open={!!editingDebt} onClose={() => setEditingDebt(null)} editDebt={editingDebt} />
       <RegisterPaymentModal open={!!paymentDebt} onClose={() => setPaymentDebt(null)} debt={paymentDebt} />
 
       {confirmDelete && (
@@ -174,10 +176,12 @@ function DebtSection({
   title,
   items,
   onPay,
+  onEdit,
 }: {
   title: string
   items: DebtWithRelations[]
   onPay: (d: DebtWithRelations) => void
+  onEdit: (d: DebtWithRelations) => void
 }) {
   if (items.length === 0) return null
   return (
@@ -194,7 +198,16 @@ function DebtSection({
                   {d.due_date && ` • vence ${formatDate(d.due_date)}`}
                 </p>
               </div>
-              <StatusBadge status={d.status} />
+              <div className="flex items-center gap-2 shrink-0">
+                <StatusBadge status={d.status} />
+                <button
+                  onClick={() => onEdit(d)}
+                  className="p-1 text-ink-400 hover:text-ink-900 dark:hover:text-white transition"
+                  title="Editar"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
             </div>
             <div className="flex items-end justify-between mt-3">
               <div>
