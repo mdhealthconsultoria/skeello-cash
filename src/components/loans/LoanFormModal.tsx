@@ -85,7 +85,7 @@ export function LoanFormModal({
       setIssueDate(today())
       setDueDate('')
       setNotes('')
-      setFunders([])
+      setFunders([blankFunder()])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editLoan?.id])
@@ -111,12 +111,13 @@ export function LoanFormModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const filled = funders.filter((f) => f.party.name.trim() || f.amount.trim())
     if (calc.p <= 0) return toast.error('Informe o valor emprestado.')
     if (!dueDate) return toast.error('Informe a data de vencimento.')
     if (calc.funded > calc.p + 0.009) {
       return toast.error('Os valores dos co-fundadores somam mais que o valor emprestado.')
     }
-    for (const f of funders) {
+    for (const f of filled) {
       if (!f.party.name.trim()) return toast.error('Dê um nome a cada co-fundador.')
       if (parseMoney(f.amount) <= 0) return toast.error(`Informe o valor de ${f.party.name}.`)
     }
@@ -133,7 +134,7 @@ export function LoanFormModal({
         due_date: dueDate,
         notes: notes.trim() || null,
       },
-      funders.map((f) => ({
+      filled.map((f) => ({
         id: f.id,
         funder_name: f.party.name.trim(),
         funder_email: f.party.email.trim() || null,
@@ -158,56 +159,19 @@ export function LoanFormModal({
     <Modal open={open} onClose={onClose} title={editLoan ? 'Editar empréstimo' : 'Novo empréstimo'}>
       <form onSubmit={handleSubmit} className="space-y-5">
         <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Devedor: quem recebeu o dinheiro de você</h3>
-          <PartyPicker value={borrower} onChange={setBorrower} nameLabel="Nome do devedor" />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Valor emprestado (R$) *</label>
-              <input
-                required
-                inputMode="decimal"
-                value={principal}
-                onChange={(e) => setPrincipal(e.target.value)}
-                className="input"
-                placeholder="500,00"
-              />
-            </div>
-            <div>
-              <label className="label">Juros que ele paga (%) *</label>
-              <input
-                required
-                inputMode="decimal"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                className="input"
-                placeholder="15"
-              />
-            </div>
-            <div>
-              <label className="label">Data do empréstimo</label>
-              <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="input" />
-            </div>
-            <div>
-              <label className="label">Vencimento *</label>
-              <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" />
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Co-fundador: quem te emprestou o dinheiro</h3>
+            <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">1. Quem te emprestou o dinheiro (co-fundador)</h3>
             <button
               type="button"
               onClick={() => setFunders((p) => [...p, blankFunder()])}
               className="text-xs font-medium text-ink-900 dark:text-white flex items-center gap-1"
             >
-              <Plus size={14} /> Co-fundador
+              <Plus size={14} /> Outro co-fundador
             </button>
           </div>
           {funders.length === 0 && (
             <p className="text-xs text-ink-400">
-              Sem co-fundador, o dinheiro é seu. Se alguém te emprestou dinheiro para você emprestar, adicione a pessoa e a % que você combinou pagar a ela. Ela vai ver o valor, as datas e quanto vai receber.
+              Coloque aqui a pessoa que te emprestou o dinheiro e a % que você vai pagar a ela. Ela vai ver o valor, as datas e quanto vai receber. Se o dinheiro é só seu, remova este quadro.
             </p>
           )}
           {funders.map((f) => (
@@ -268,10 +232,47 @@ export function LoanFormModal({
           ))}
         </section>
 
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">2. Para quem você vai emprestar (devedor)</h3>
+          <PartyPicker value={borrower} onChange={setBorrower} nameLabel="Nome do devedor" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Valor que você empresta ao devedor (R$) *</label>
+              <input
+                required
+                inputMode="decimal"
+                value={principal}
+                onChange={(e) => setPrincipal(e.target.value)}
+                className="input"
+                placeholder="500,00"
+              />
+            </div>
+            <div>
+              <label className="label">Juros que o devedor paga (%) *</label>
+              <input
+                required
+                inputMode="decimal"
+                value={rate}
+                onChange={(e) => setRate(e.target.value)}
+                className="input"
+                placeholder="15"
+              />
+            </div>
+            <div>
+              <label className="label">Data do empréstimo</label>
+              <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="input" />
+            </div>
+            <div>
+              <label className="label">Vencimento *</label>
+              <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" />
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-2xl bg-ink-50 dark:bg-ink-800 p-4 space-y-1.5 text-sm">
           <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50 mb-1">A conta</h3>
           <Row label={`${borrower.name || 'Devedor'} paga no vencimento`} value={formatCurrency(calc.total)} strong />
-          {calc.rows.map((r) => (
+          {calc.rows.filter((r) => r.amount > 0).map((r) => (
             <Row key={r.key} label={`Você devolve a ${r.name}`} value={formatCurrency(r.total)} />
           ))}
           {calc.own > 0 && funders.length > 0 && <Row label="Saiu do seu bolso" value={formatCurrency(calc.own)} />}
