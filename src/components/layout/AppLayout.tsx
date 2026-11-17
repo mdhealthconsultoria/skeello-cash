@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell } from 'lucide-react'
+import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell, Landmark } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 import { useNotifications } from '../../hooks/useNotifications'
 import { Avatar } from '../ui/Avatar'
 import { Logo } from '../ui/Logo'
@@ -11,15 +12,30 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Início', shortLabel: 'Início', icon: Home, end: true },
   { to: '/pessoas', label: 'Pessoas', shortLabel: 'Pessoas', icon: Users, end: false },
   { to: '/movimentacoes', label: 'Movimentações', shortLabel: 'Extrato', icon: Wallet, end: false },
+  { to: '/emprestimos', label: 'Empréstimos', shortLabel: 'Crédito', icon: Landmark, end: false },
   { to: '/analises', label: 'Análises', shortLabel: 'Análises', icon: BarChart3, end: false },
   { to: '/configuracoes', label: 'Configurações', shortLabel: 'Ajustes', icon: Settings, end: false },
 ]
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { profile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
   const { unreadCount } = useNotifications()
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+
+  // Garante os avisos de vencimento de empréstimo (10, 7, 3 e 1 dia) mesmo sem agendador no servidor.
+  // É idempotente: cada aviso sai uma vez só. No máximo uma chamada por dia neste aparelho.
+  useEffect(() => {
+    if (!user) return
+    const key = `loan-reminders:${new Date().toISOString().slice(0, 10)}`
+    try {
+      if (localStorage.getItem(key)) return
+      localStorage.setItem(key, '1')
+    } catch {
+      // sem localStorage: só roda de novo na próxima abertura
+    }
+    supabase.rpc('generate_loan_reminders').then(() => {})
+  }, [user])
 
   return (
     <div className="min-h-screen flex">
@@ -115,7 +131,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-ink-950/95 backdrop-blur border-t border-ink-100 dark:border-ink-800 flex items-stretch"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          {NAV_ITEMS.slice(0, 2).map((item) => (
+          {NAV_ITEMS.slice(0, 3).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -141,7 +157,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
 
-          {NAV_ITEMS.slice(2).map((item) => (
+          {NAV_ITEMS.slice(3).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

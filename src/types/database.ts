@@ -94,7 +94,16 @@ export interface Notification {
   id: string
   user_id: string
   debt_id: string | null
-  type: 'due_today' | 'due_soon' | 'overdue' | 'summary' | 'debt_invite' | 'debt_accepted' | 'contact_added'
+  type:
+    | 'due_today'
+    | 'due_soon'
+    | 'overdue'
+    | 'summary'
+    | 'debt_invite'
+    | 'debt_accepted'
+    | 'contact_added'
+    | 'loan_shared'
+    | 'loan_due'
   message: string
   read: boolean
   created_at: string
@@ -133,4 +142,103 @@ export interface AdminUserRow {
   created_at: string
   total_receivable: number
   total_payable: number
+}
+
+// ===== Empréstimos a juros =====
+
+export interface Loan {
+  id: string
+  owner_id: string
+  borrower_name: string
+  borrower_email: string | null
+  borrower_user_id: string | null
+  principal: number
+  borrower_rate: number
+  issue_date: string
+  due_date: string
+  notes: string | null
+  closed: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LoanFunder {
+  id: string
+  loan_id: string
+  owner_id: string
+  funder_name: string
+  funder_email: string | null
+  funder_user_id: string | null
+  amount: number
+  rate: number
+  can_see_borrower: boolean
+  can_see_payments: boolean
+  created_at: string
+}
+
+export interface LoanPayment {
+  id: string
+  loan_id: string
+  owner_id: string
+  amount: number
+  paid_at: string
+  note: string | null
+  created_at: string
+}
+
+export interface FunderPayment {
+  id: string
+  funder_id: string
+  loan_id: string
+  owner_id: string
+  amount: number
+  paid_at: string
+  note: string | null
+  created_at: string
+}
+
+export interface LoanFull extends Loan {
+  funders: LoanFunder[]
+  payments: LoanPayment[]
+  funder_payments: FunderPayment[]
+}
+
+export interface ParticipationPayment {
+  id: string
+  amount: number
+  paid_at: string
+  note: string | null
+}
+
+/** Empréstimo em que eu sou o tomador (visão de quem deve). */
+export interface Borrowing {
+  id: string
+  due_date: string
+  issue_date: string
+  principal: number
+  borrower_rate: number
+  total: number
+  paid: number
+  owner_name: string | null
+  closed: boolean
+  payments: ParticipationPayment[]
+}
+
+/** Empréstimo em que eu sou co-fundador (visão de quem vai receber). */
+export interface Funding {
+  id: string
+  due_date: string
+  issue_date: string
+  amount: number
+  rate: number
+  total: number
+  paid: number
+  owner_name: string | null
+  closed: boolean
+  borrower_name: string | null
+  can_see_borrower: boolean
+  can_see_payments: boolean
+  borrower_total: number | null
+  borrower_paid: number | null
+  payments: ParticipationPayment[]
 }

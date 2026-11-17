@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bell, Link2, HandCoins, CheckCheck } from 'lucide-react'
+import { ArrowLeft, Bell, Link2, HandCoins, CheckCheck, Landmark } from 'lucide-react'
 import { useNotifications } from '../hooks/useNotifications'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
@@ -14,6 +14,8 @@ const ICONS: Record<Notification['type'], typeof Bell> = {
   debt_invite: HandCoins,
   debt_accepted: HandCoins,
   contact_added: Link2,
+  loan_shared: Landmark,
+  loan_due: Landmark,
 }
 
 export default function Notifications() {

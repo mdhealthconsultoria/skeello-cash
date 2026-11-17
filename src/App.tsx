@@ -22,6 +22,8 @@ import BankConnections from './pages/BankConnections'
 import Community from './pages/Community'
 import Notifications from './pages/Notifications'
 import Admin from './pages/Admin'
+import Loans from './pages/Loans'
+import LoanDetail from './pages/LoanDetail'
 import { Navigate } from 'react-router-dom'
 
 function RootRedirect() {
@@ -137,6 +139,22 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/emprestimos"
+              element={
+                <ProtectedRoute>
+                  <Loans />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/emprestimos/:id"
+              element={
+                <ProtectedRoute>
+                  <LoanDetail />
                 </ProtectedRoute>
               }
             />

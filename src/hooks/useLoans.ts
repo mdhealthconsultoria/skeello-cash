@@ -1,0 +1,212 @@
+import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
+import type { Borrowing, Funding, LoanFull } from '../types/database'
+
+export interface LoanInput {
+  borrower_name: string
+  borrower_email: string | null
+  borrower_user_id: string | null
+  principal: number
+  borrower_rate: number
+  issue_date: string
+  due_date: string
+  notes: string | null
+}
+
+export interface FunderInput {
+  id?: string
+  funder_name: string
+  funder_email: string | null
+  funder_user_id: string | null
+  amount: number
+  rate: number
+  can_see_borrower: boolean
+  can_see_payments: boolean
+}
+
+const SELECT = '*, funders:loan_funders(*), payments:loan_payments(*), funder_payments(*)'
+
+function sortLoan(l: LoanFull): LoanFull {
+  return {
+    ...l,
+    funders: [...(l.funders ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    payments: [...(l.payments ?? [])].sort(
+      (a, b) => b.paid_at.localeCompare(a.paid_at) || b.created_at.localeCompare(a.created_at)
+    ),
+    funder_payments: [...(l.funder_payments ?? [])].sort(
+      (a, b) => b.paid_at.localeCompare(a.paid_at) || b.created_at.localeCompare(a.created_at)
+    ),
+  }
+}
+
+/** Empréstimos que EU fiz (sou o dono): crio, edito, registro pagamentos. */
+export function useLoans() {
+  const { user } = useAuth()
+  const [loans, setLoans] = useState<LoanFull[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchLoans = useCallback(async () => {
+    if (!user) return
+    const { data, error: err } = await supabase
+      .from('loans')
+      .select(SELECT)
+      .eq('owner_id', user.id)
+      .order('due_date', { ascending: true })
+    if (err) setError(err.message)
+    else {
+      setLoans(((data ?? []) as LoanFull[]).map(sortLoan))
+      setError(null)
+    }
+    setLoading(false)
+  }, [user])
+
+  useEffect(() => {
+    fetchLoans()
+  }, [fetchLoans])
+
+  async function syncFunders(loanId: string, funders: FunderInput[]) {
+    if (!user) return 'Não autenticado'
+    const { data: existing, error: e1 } = await supabase.from('loan_funders').select('id').eq('loan_id', loanId)
+    if (e1) return e1.message
+    const keep = new Set(funders.filter((f) => f.id).map((f) => f.id as string))
+    const toDelete = (existing ?? []).map((r) => r.id).filter((id) => !keep.has(id))
+    if (toDelete.length) {
+      const { error: e2 } = await supabase.from('loan_funders').delete().in('id', toDelete)
+      if (e2) return e2.message
+    }
+    for (const f of funders) {
+      const row = {
+        funder_name: f.funder_name,
+        funder_email: f.funder_email,
+        funder_user_id: f.funder_user_id,
+        amount: f.amount,
+        rate: f.rate,
+        can_see_borrower: f.can_see_borrower,
+        can_see_payments: f.can_see_payments,
+      }
+      const { error: e3 } = f.id
+        ? await supabase.from('loan_funders').update(row).eq('id', f.id)
+        : await supabase.from('loan_funders').insert({ ...row, loan_id: loanId, owner_id: user.id })
+      if (e3) return e3.message
+    }
+    return null
+  }
+
+  async function saveLoan(input: LoanInput, funders: FunderInput[], editId?: string) {
+    if (!user) return { id: null as string | null, error: 'Não autenticado' }
+    let loanId = editId ?? null
+    if (editId) {
+      const { error: err } = await supabase
+        .from('loans')
+        .update({ ...input, updated_at: new Date().toISOString() })
+        .eq('id', editId)
+      if (err) return { id: null, error: err.message }
+    } else {
+      const { data, error: err } = await supabase
+        .from('loans')
+        .insert({ ...input, owner_id: user.id })
+        .select('id')
+        .single()
+      if (err) return { id: null, error: err.message }
+      loanId = data.id
+    }
+    const fErr = await syncFunders(loanId as string, funders)
+    await fetchLoans()
+    return { id: loanId, error: fErr }
+  }
+
+  async function deleteLoan(id: string) {
+    const { error: err } = await supabase.from('loans').delete().eq('id', id)
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  async function setClosed(id: string, closed: boolean) {
+    const { error: err } = await supabase
+      .from('loans')
+      .update({ closed, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  async function addPayment(loanId: string, amount: number, paidAt: string, note?: string) {
+    if (!user) return { error: 'Não autenticado' }
+    const { error: err } = await supabase
+      .from('loan_payments')
+      .insert({ loan_id: loanId, owner_id: user.id, amount, paid_at: paidAt, note: note || null })
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  async function deletePayment(id: string) {
+    const { error: err } = await supabase.from('loan_payments').delete().eq('id', id)
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  async function addFunderPayment(funderId: string, loanId: string, amount: number, paidAt: string, note?: string) {
+    if (!user) return { error: 'Não autenticado' }
+    const { error: err } = await supabase.from('funder_payments').insert({
+      funder_id: funderId,
+      loan_id: loanId,
+      owner_id: user.id,
+      amount,
+      paid_at: paidAt,
+      note: note || null,
+    })
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  async function deleteFunderPayment(id: string) {
+    const { error: err } = await supabase.from('funder_payments').delete().eq('id', id)
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  async function updateFunderAccess(funderId: string, patch: { can_see_borrower?: boolean; can_see_payments?: boolean }) {
+    const { error: err } = await supabase.from('loan_funders').update(patch).eq('id', funderId)
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  return {
+    loans,
+    loading,
+    error,
+    refetch: fetchLoans,
+    saveLoan,
+    deleteLoan,
+    setClosed,
+    addPayment,
+    deletePayment,
+    addFunderPayment,
+    deleteFunderPayment,
+    updateFunderAccess,
+  }
+}
+
+/** Empréstimos em que participo: como tomador (eu devo) e como co-fundador (vou receber). */
+export function useParticipations() {
+  const { user } = useAuth()
+  const [borrowings, setBorrowings] = useState<Borrowing[]>([])
+  const [fundings, setFundings] = useState<Funding[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchAll = useCallback(async () => {
+    if (!user) return
+    const [b, f] = await Promise.all([supabase.rpc('get_my_borrowings'), supabase.rpc('get_my_fundings')])
+    setBorrowings((b.data as Borrowing[]) ?? [])
+    setFundings((f.data as Funding[]) ?? [])
+    setLoading(false)
+  }, [user])
+
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
+
+  return { borrowings, fundings, loading, refetch: fetchAll }
+}
