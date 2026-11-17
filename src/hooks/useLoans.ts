@@ -189,7 +189,7 @@ export function useLoans() {
   }
 }
 
-/** Empréstimos em que participo: como tomador (eu devo) e como co-fundador (vou receber). */
+/** Empréstimos em que participo: como devedor (eu devo) e como co-fundador (vou receber). */
 export function useParticipations() {
   const { user } = useAuth()
   const [borrowings, setBorrowings] = useState<Borrowing[]>([])

@@ -32,7 +32,7 @@ export default function Loans() {
   )
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'mine', label: 'Emprestei', count: loans.length },
+    { key: 'mine', label: 'Devedores', count: loans.length },
     { key: 'owe', label: 'Eu devo', count: borrowings.length },
     { key: 'funded', label: 'Co-fundador', count: fundings.length },
   ]
@@ -65,6 +65,7 @@ export default function Loans() {
 
       {tab === 'mine' && (
         <>
+          <p className="text-sm text-ink-500 dark:text-ink-400">Pessoas que pegaram dinheiro com você e vão te pagar com juros.</p>
           <div className="grid grid-cols-3 gap-2.5">
             <Stat label="A receber" value={totals.toReceive} />
             <Stat label="A repassar" value={totals.toPass} />
@@ -90,6 +91,13 @@ export default function Loans() {
             </div>
           )}
         </>
+      )}
+
+      {tab === 'owe' && borrowings.length > 0 && (
+        <p className="text-sm text-ink-500 dark:text-ink-400">Dinheiro que você pegou emprestado e precisa pagar.</p>
+      )}
+      {tab === 'funded' && fundings.length > 0 && (
+        <p className="text-sm text-ink-500 dark:text-ink-400">Dinheiro que você emprestou junto com alguém. Aqui você vê quanto vai receber e quando.</p>
       )}
 
       {tab === 'owe' &&

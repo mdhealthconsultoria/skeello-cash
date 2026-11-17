@@ -144,7 +144,7 @@ export default function LoanDetail() {
       {/* Meu resultado */}
       <div className="card p-5 space-y-1.5 text-sm">
         <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-50 mb-1">Minha conta</h2>
-        <Line label="Entra (tomador paga)" value={formatCurrency(s.total)} />
+        <Line label="Entra (devedor paga)" value={formatCurrency(s.total)} />
         <Line label="Repassar aos co-fundadores" value={formatCurrency(s.funderTotal)} />
         {s.ownMoney > 0 && s.funders.length > 0 && <Line label="Saiu do meu bolso" value={formatCurrency(s.ownMoney)} />}
         <div className="border-t border-ink-100 dark:border-ink-800 pt-1.5 mt-1.5">
@@ -159,7 +159,7 @@ export default function LoanDetail() {
 
       {/* Co-fundadores */}
       <div className="space-y-2.5">
-        <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Co-fundadores</h2>
+        <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Co-fundadores (quem te emprestou o dinheiro)</h2>
         {s.funders.length === 0 && (
           <p className="text-sm text-ink-400">Nenhum. O dinheiro desse empréstimo é seu.</p>
         )}
@@ -171,7 +171,7 @@ export default function LoanDetail() {
                 <div className="min-w-0">
                   <p className="font-semibold text-ink-900 dark:text-ink-50 truncate">{f.funder_name}</p>
                   <p className="text-xs text-ink-400">
-                    Colocou {formatCurrency(f.amount)} a {String(f.rate).replace('.', ',')}% (+{formatCurrency(interest)})
+                    Te emprestou {formatCurrency(f.amount)} a {String(f.rate).replace('.', ',')}% (+{formatCurrency(interest)})
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -195,7 +195,7 @@ export default function LoanDetail() {
                       checked={f.can_see_payments}
                       onChange={(e) => updateFunderAccess(f.id, { can_see_payments: e.target.checked })}
                     />
-                    Pode ver quanto o tomador pagou
+                    Pode ver quanto o devedor pagou
                   </label>
                   <label className="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200">
                     <input
@@ -203,7 +203,7 @@ export default function LoanDetail() {
                       checked={f.can_see_borrower}
                       onChange={(e) => updateFunderAccess(f.id, { can_see_borrower: e.target.checked })}
                     />
-                    Pode ver o nome do tomador
+                    Pode ver o nome do devedor
                   </label>
                 </div>
               ) : f.funder_email ? (
@@ -243,7 +243,7 @@ export default function LoanDetail() {
         })}
       </div>
 
-      {/* Pagamentos do tomador */}
+      {/* Pagamentos do devedor */}
       <div className="space-y-2.5">
         <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Recebimentos de {loan.borrower_name}</h2>
         {loan.payments.length === 0 ? (

@@ -133,21 +133,21 @@ export function BorrowingCard({ b }: { b: Borrowing }) {
 export function FundingCard({ f }: { f: Funding }) {
   const remaining = round2(Math.max(f.total - f.paid, 0))
   const lines = [
-    { label: 'Você colocou', value: formatCurrency(f.amount) },
+    { label: 'Você emprestou', value: formatCurrency(f.amount) },
     { label: `Retorno combinado (${String(f.rate).replace('.', ',')}%)`, value: formatCurrency(round2(f.total - f.amount)) },
     { label: 'Total a receber', value: formatCurrency(f.total) },
     { label: 'Já recebido', value: formatCurrency(f.paid) },
   ]
   if (f.can_see_payments && f.borrower_total !== null && f.borrower_paid !== null) {
     lines.push({
-      label: 'O tomador já pagou',
+      label: 'O devedor já pagou',
       value: `${formatCurrency(f.borrower_paid)} de ${formatCurrency(f.borrower_total)}`,
     })
   }
   return (
     <Shell
       title={`${f.owner_name ?? 'Alguém'} te deve`}
-      subtitle={f.borrower_name ? `Emprestado a ${f.borrower_name}` : `Co-fundador desde ${formatDate(f.issue_date)}`}
+      subtitle={`Você emprestou ${formatCurrency(f.amount)} em ${formatDate(f.issue_date)}${f.borrower_name ? ` · devedor: ${f.borrower_name}` : ''}`}
       dueDate={f.due_date}
       remainingLabel="Falta receber"
       remaining={remaining}

@@ -4,7 +4,7 @@ import { Modal } from '../ui/Modal'
 import { formatCurrency } from '../../lib/format'
 import { parseMoney } from '../../lib/loans'
 
-/** Registra um pagamento (do tomador pra mim, ou de mim pra um co-fundador). */
+/** Registra um pagamento (do devedor pra mim, ou de mim pra um co-fundador). */
 export function LoanPaymentModal({
   open,
   onClose,

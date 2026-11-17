@@ -35,7 +35,7 @@ export function loanSummary(loan: LoanFull) {
   const funderRemaining = round2(funders.reduce((s, f) => s + f.remaining, 0))
   const fundedAmount = round2(loan.funders.reduce((s, f) => s + f.amount, 0))
   const ownMoney = round2(Math.max(loan.principal - fundedAmount, 0))
-  // lucro previsto = o que o tomador paga - o que devolvo aos co-fundadores - o que saiu do meu bolso
+  // lucro previsto = o que o devedor paga - o que devolvo aos co-fundadores - o que saiu do meu bolso
   const profit = round2(total - funderTotal - ownMoney)
   const days = daysUntil(loan.due_date)
   const settled = remaining <= 0.009

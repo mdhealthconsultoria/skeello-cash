@@ -90,7 +90,7 @@ export function LoanFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editLoan?.id])
 
-  // a conta ao vivo: o que o tomador paga, o que devolvo a cada um e o que sobra pra mim
+  // a conta ao vivo: o que o devedor paga, o que devolvo a cada um e o que sobra pra mim
   const calc = useMemo(() => {
     const p = parseMoney(principal)
     const r = parseMoney(rate)
@@ -158,8 +158,8 @@ export function LoanFormModal({
     <Modal open={open} onClose={onClose} title={editLoan ? 'Editar empréstimo' : 'Novo empréstimo'}>
       <form onSubmit={handleSubmit} className="space-y-5">
         <section className="space-y-3">
-          <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Quem pegou emprestado</h3>
-          <PartyPicker value={borrower} onChange={setBorrower} nameLabel="Nome do tomador" />
+          <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Devedor: quem recebeu o dinheiro de você</h3>
+          <PartyPicker value={borrower} onChange={setBorrower} nameLabel="Nome do devedor" />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Valor emprestado (R$) *</label>
@@ -196,7 +196,7 @@ export function LoanFormModal({
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">De onde veio o dinheiro</h3>
+            <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Co-fundador: quem te emprestou o dinheiro</h3>
             <button
               type="button"
               onClick={() => setFunders((p) => [...p, blankFunder()])}
@@ -207,7 +207,7 @@ export function LoanFormModal({
           </div>
           {funders.length === 0 && (
             <p className="text-xs text-ink-400">
-              Sem co-fundador, o dinheiro é seu. Adicione quem emprestou a você e a % que você combinou com cada um.
+              Sem co-fundador, o dinheiro é seu. Se alguém te emprestou dinheiro para você emprestar, adicione a pessoa e a % que você combinou pagar a ela. Ela vai ver o valor, as datas e quanto vai receber.
             </p>
           )}
           {funders.map((f) => (
@@ -225,7 +225,7 @@ export function LoanFormModal({
               <PartyPicker value={f.party} onChange={(party) => patchFunder(f.key, { party })} nameLabel="Nome do co-fundador" />
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Valor que ele colocou (R$)</label>
+                  <label className="label">Valor que ele te emprestou (R$)</label>
                   <input
                     inputMode="decimal"
                     value={f.amount}
@@ -253,7 +253,7 @@ export function LoanFormModal({
                     checked={f.canSeePayments}
                     onChange={(e) => patchFunder(f.key, { canSeePayments: e.target.checked })}
                   />
-                  Quanto o tomador já pagou
+                  Quanto o devedor já pagou
                 </label>
                 <label className="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200">
                   <input
@@ -261,7 +261,7 @@ export function LoanFormModal({
                     checked={f.canSeeBorrower}
                     onChange={(e) => patchFunder(f.key, { canSeeBorrower: e.target.checked })}
                   />
-                  O nome do tomador
+                  O nome do devedor
                 </label>
               </div>
             </div>
@@ -270,7 +270,7 @@ export function LoanFormModal({
 
         <section className="rounded-2xl bg-ink-50 dark:bg-ink-800 p-4 space-y-1.5 text-sm">
           <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50 mb-1">A conta</h3>
-          <Row label={`${borrower.name || 'Tomador'} paga no vencimento`} value={formatCurrency(calc.total)} strong />
+          <Row label={`${borrower.name || 'Devedor'} paga no vencimento`} value={formatCurrency(calc.total)} strong />
           {calc.rows.map((r) => (
             <Row key={r.key} label={`Você devolve a ${r.name}`} value={formatCurrency(r.total)} />
           ))}

@@ -11,7 +11,7 @@ export interface PartyValue {
 }
 
 /**
- * Campo de pessoa de um empréstimo (tomador ou co-fundador).
+ * Campo de pessoa de um empréstimo (devedor ou co-fundador).
  * Dá pra só digitar nome (+ e-mail opcional) ou vincular a um usuário do app.
  * Vinculado, ele vê o empréstimo na conta dele. Com e-mail de quem ainda não tem conta,
  * o acesso é liberado sozinho assim que a pessoa se cadastrar com esse e-mail.
