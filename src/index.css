@@ -51,34 +51,38 @@ body {
   @apply bg-ink-200 dark:bg-ink-700 rounded-full;
 }
 
-.card {
-  /* no escuro, ink-900 chegava perto demais do preto do fundo e o card "sumia" —
-     agora tem borda mais visível + sombra própria pra sempre se destacar do body. */
-  @apply bg-white dark:bg-ink-900 rounded-2xl border border-ink-100 dark:border-ink-700/60 shadow-sm dark:shadow-none transition-shadow duration-200;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
+/* em @layer components, os utilitários (pl-10, w-full...) vencem estas classes. Fora da camada,
+   .input sobrescrevia pl-*, e o ícone de busca ficava em cima do texto. */
+@layer components {
+  .card {
+    /* no escuro, ink-900 chegava perto demais do preto do fundo e o card "sumia" —
+       agora tem borda mais visível + sombra própria pra sempre se destacar do body. */
+    @apply bg-white dark:bg-ink-900 rounded-2xl border border-ink-100 dark:border-ink-700/60 shadow-sm dark:shadow-none transition-shadow duration-200;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
 
-.dark .card {
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 4px 16px rgba(0, 0, 0, 0.4);
-}
+  .dark .card {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
 
-.btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-ink-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-ink-900 shadow-sm transition hover:bg-ink-800 dark:hover:bg-ink-100 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
-}
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-ink-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-ink-900 shadow-sm transition hover:bg-ink-800 dark:hover:bg-ink-100 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
 
-.btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-ink-100 dark:bg-ink-800 px-4 py-2.5 text-sm font-medium text-ink-700 dark:text-ink-200 transition hover:bg-ink-200 dark:hover:bg-ink-700 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
-}
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-ink-100 dark:bg-ink-800 px-4 py-2.5 text-sm font-medium text-ink-700 dark:text-ink-200 transition hover:bg-ink-200 dark:hover:bg-ink-700 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
 
-.input {
-  /* text-base (16px), não text-sm: abaixo de 16px o Safari do iPhone dá zoom
-     automático ao focar o campo — é isso que faz formulário "parecer estranho"
-     no celular. */
-  @apply w-full rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3.5 py-2.5 text-base text-ink-900 dark:text-ink-50 placeholder:text-ink-400 outline-none transition focus:border-ink-900 dark:focus:border-ink-50 focus:ring-2 focus:ring-ink-900/10 dark:focus:ring-white/10;
-}
+  .input {
+    /* text-base (16px), não text-sm: abaixo de 16px o Safari do iPhone dá zoom
+       automático ao focar o campo — é isso que faz formulário "parecer estranho"
+       no celular. */
+    @apply w-full rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3.5 py-2.5 text-base text-ink-900 dark:text-ink-50 placeholder:text-ink-400 outline-none transition focus:border-ink-900 dark:focus:border-ink-50 focus:ring-2 focus:ring-ink-900/10 dark:focus:ring-white/10;
+  }
 
-.label {
-  @apply block text-xs font-medium text-ink-500 dark:text-ink-400 mb-1.5;
+  .label {
+    @apply block text-xs font-medium text-ink-500 dark:text-ink-400 mb-1.5;
+  }
 }
 
 @keyframes fadeIn {
