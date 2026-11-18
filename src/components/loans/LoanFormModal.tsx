@@ -4,7 +4,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { PartyPicker, type PartyValue } from './PartyPicker'
 import { formatCurrency } from '../../lib/format'
-import { parseMoney, round2, withRate } from '../../lib/loans'
+import { daysBetween, isRenewed, parseMoney, rateFromDaily, round2, withRate } from '../../lib/loans'
+import { useDefaultDailyRate } from '../../hooks/useDefaultDailyRate'
 import type { FunderInput, LoanInput } from '../../hooks/useLoans'
 import type { LoanFull } from '../../types/database'
 import { Toggle } from '../ui/Toggle'
@@ -15,23 +16,35 @@ interface FunderDraft {
   party: PartyValue
   amount: string
   rate: string
+  /** 'term' = % no prazo todo, 'day' = % ao dia */
+  unit: RateUnit
   canSeeBorrower: boolean
   canSeePayments: boolean
+  canSeeChart: boolean
+  /** o banco já tem as colunas novas / o empréstimo já foi renovado (juros de vários prazos somados) */
+  hasNewCols: boolean
+  renewed: boolean
 }
+
+type RateUnit = 'term' | 'day'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const num = (n: number) => String(n).replace('.', ',')
 let counter = 0
 const newKey = () => `f${++counter}`
 
-function blankFunder(): FunderDraft {
+function blankFunder(defaultDaily = 0): FunderDraft {
   return {
     key: newKey(),
     party: { name: '', email: '', userId: null },
     amount: '',
-    rate: '',
+    rate: defaultDaily > 0 ? num(defaultDaily) : '',
+    unit: defaultDaily > 0 ? 'day' : 'term',
     canSeeBorrower: false,
     canSeePayments: true,
+    canSeeChart: false,
+    hasNewCols: false,
+    renewed: false,
   }
 }
 
@@ -48,7 +61,9 @@ export function LoanFormModal({
 }) {
   const [borrower, setBorrower] = useState<PartyValue>({ name: '', email: '', userId: null })
   const [principal, setPrincipal] = useState('')
+  const defaultDaily = useDefaultDailyRate()
   const [rate, setRate] = useState('')
+  const [rateUnit, setRateUnit] = useState<RateUnit>('term')
   const [issueDate, setIssueDate] = useState(today())
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
@@ -64,7 +79,9 @@ export function LoanFormModal({
         userId: editLoan.borrower_user_id,
       })
       setPrincipal(num(editLoan.principal))
-      setRate(num(editLoan.borrower_rate))
+      const dailyOn = editLoan.daily_rate != null && !isRenewed(editLoan)
+      setRateUnit(dailyOn ? 'day' : 'term')
+      setRate(dailyOn ? num(editLoan.daily_rate as number) : num(editLoan.borrower_rate))
       setIssueDate(editLoan.issue_date)
       setDueDate(editLoan.due_date)
       setNotes(editLoan.notes ?? '')
@@ -74,37 +91,47 @@ export function LoanFormModal({
           id: f.id,
           party: { name: f.funder_name, email: f.funder_email ?? '', userId: f.funder_user_id },
           amount: num(f.amount),
-          rate: num(f.rate),
+          rate: f.daily_rate != null && !isRenewed({ borrower_rate: f.rate, term_rate: f.term_rate }) ? num(f.daily_rate) : num(f.rate),
+          unit: f.daily_rate != null && !isRenewed({ borrower_rate: f.rate, term_rate: f.term_rate }) ? 'day' : 'term',
           canSeeBorrower: f.can_see_borrower,
           canSeePayments: f.can_see_payments,
+          canSeeChart: Boolean(f.can_see_chart),
+          hasNewCols: f.can_see_chart !== undefined,
+          renewed: isRenewed({ borrower_rate: f.rate, term_rate: f.term_rate }),
         }))
       )
     } else {
       setBorrower({ name: '', email: '', userId: null })
       setPrincipal('')
-      setRate('')
+      setRate(defaultDaily > 0 ? num(defaultDaily) : '')
+      setRateUnit(defaultDaily > 0 ? 'day' : 'term')
       setIssueDate(today())
       setDueDate('')
       setNotes('')
-      setFunders([blankFunder()])
+      setFunders([blankFunder(defaultDaily)])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editLoan?.id])
+  }, [open, editLoan?.id, defaultDaily])
 
   // a conta ao vivo: o que o devedor paga, o que devolvo a cada um e o que sobra pra mim
+  const days = Math.max(1, daysBetween(issueDate, dueDate))
+  const termOf = (value: string, unit: RateUnit) => (unit === 'day' ? rateFromDaily(parseMoney(value), days) : parseMoney(value))
+  const loanRenewed = Boolean(editLoan && isRenewed(editLoan))
+
   const calc = useMemo(() => {
     const p = parseMoney(principal)
-    const r = parseMoney(rate)
+    const r = rateUnit === 'day' ? rateFromDaily(parseMoney(rate), days) : parseMoney(rate)
     const total = withRate(p, r)
     const rows = funders.map((f) => {
       const a = parseMoney(f.amount)
-      return { key: f.key, name: f.party.name || 'Co-fundador', amount: a, total: withRate(a, parseMoney(f.rate)) }
+      const fr = f.unit === 'day' ? rateFromDaily(parseMoney(f.rate), days) : parseMoney(f.rate)
+      return { key: f.key, name: f.party.name || 'Co-fundador', amount: a, total: withRate(a, fr) }
     })
     const funded = round2(rows.reduce((s, x) => s + x.amount, 0))
     const funderTotal = round2(rows.reduce((s, x) => s + x.total, 0))
     const own = round2(Math.max(p - funded, 0))
     return { p, r, total, rows, funded, funderTotal, own, profit: round2(total - funderTotal - own) }
-  }, [principal, rate, funders])
+  }, [principal, rate, rateUnit, funders, days])
 
   function patchFunder(key: string, patch: Partial<FunderDraft>) {
     setFunders((prev) => prev.map((f) => (f.key === key ? { ...f, ...patch } : f)))
@@ -134,6 +161,12 @@ export function LoanFormModal({
         issue_date: issueDate,
         due_date: dueDate,
         notes: notes.trim() || null,
+        ...(rateUnit === 'day' && !loanRenewed
+          ? { daily_rate: parseMoney(rate) }
+          : editLoan && editLoan.daily_rate !== undefined && !loanRenewed
+            ? { daily_rate: null }
+            : {}),
+        ...(editLoan && editLoan.term_rate !== undefined && !loanRenewed ? { term_rate: calc.r } : {}),
       },
       filled.map((f) => ({
         id: f.id,
@@ -141,9 +174,12 @@ export function LoanFormModal({
         funder_email: f.party.email.trim() || null,
         funder_user_id: f.party.userId,
         amount: parseMoney(f.amount),
-        rate: parseMoney(f.rate),
+        rate: f.renewed ? parseMoney(f.rate) : termOf(f.rate, f.unit),
         can_see_borrower: f.canSeeBorrower,
         can_see_payments: f.canSeePayments,
+        ...(f.canSeeChart || f.hasNewCols ? { can_see_chart: f.canSeeChart } : {}),
+        ...(f.unit === 'day' && !f.renewed ? { daily_rate: parseMoney(f.rate) } : f.hasNewCols && !f.renewed ? { daily_rate: null } : {}),
+        ...(f.hasNewCols && !f.renewed ? { term_rate: termOf(f.rate, f.unit) } : {}),
       })),
       editLoan?.id
     )
@@ -201,12 +237,13 @@ export function LoanFormModal({
                 </div>
                 <div>
                   <label className="label">% que você paga a ele</label>
-                  <input
-                    inputMode="decimal"
+                  <RateField
                     value={f.rate}
-                    onChange={(e) => patchFunder(f.key, { rate: e.target.value })}
-                    className="input"
+                    unit={f.unit}
+                    lockUnit={f.renewed}
+                    onChange={(rate, unit) => patchFunder(f.key, { rate, unit })}
                     placeholder="10"
+                    days={days}
                   />
                 </div>
               </div>
@@ -214,6 +251,7 @@ export function LoanFormModal({
                 <p className="label !mb-0">O que ele pode ver</p>
                 <p className="text-xs text-ink-400">Ele sempre vê o valor dele, a % dele e quando vai receber. Nunca vê o que você cobra do devedor.</p>
                 <Toggle checked={f.canSeeBorrower} onChange={(v) => patchFunder(f.key, { canSeeBorrower: v })} label="Ele pode ver o nome do devedor" />
+                <Toggle checked={f.canSeeChart} onChange={(v) => patchFunder(f.key, { canSeeChart: v })} label="Ele pode ver o gráfico de valor e juros" />
               </div>
             </div>
           ))}
@@ -235,14 +273,18 @@ export function LoanFormModal({
               />
             </div>
             <div>
-              <label className="label">Juros que o devedor paga (%) *</label>
-              <input
-                required
-                inputMode="decimal"
+              <label className="label">Juros que o devedor paga *</label>
+              <RateField
                 value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                className="input"
+                unit={rateUnit}
+                lockUnit={loanRenewed}
+                onChange={(v, u) => {
+                  setRate(v)
+                  setRateUnit(u)
+                }}
                 placeholder="15"
+                days={days}
+                required
               />
             </div>
             <div>
@@ -286,6 +328,57 @@ export function LoanFormModal({
         </button>
       </form>
     </Modal>
+  )
+}
+
+/** Campo de juros: o valor e se ele vale pelo prazo todo ou por dia. Mostra a conta pronta. */
+function RateField({
+  value,
+  unit,
+  lockUnit,
+  onChange,
+  placeholder,
+  days,
+  required,
+}: {
+  value: string
+  unit: RateUnit
+  lockUnit?: boolean
+  onChange: (value: string, unit: RateUnit) => void
+  placeholder: string
+  days: number
+  required?: boolean
+}) {
+  const n = parseMoney(value)
+  return (
+    <div className="space-y-1.5">
+      <div className="flex gap-2">
+        <input
+          required={required}
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value, unit)}
+          className="input min-w-0"
+          placeholder={placeholder}
+        />
+        <select
+          value={unit}
+          disabled={lockUnit}
+          onChange={(e) => onChange(value, e.target.value as RateUnit)}
+          className="input !w-auto shrink-0 pr-2"
+          aria-label="Como o juros é contado"
+        >
+          <option value="term">% no prazo</option>
+          <option value="day">% ao dia</option>
+        </select>
+      </div>
+      {unit === 'day' && n > 0 && (
+        <p className="text-xs text-ink-400">
+          {String(n).replace('.', ',')}% x {days} dia{days === 1 ? '' : 's'} = {String(rateFromDaily(n, days)).replace('.', ',')}% no prazo
+        </p>
+      )}
+      {lockUnit && <p className="text-xs text-ink-400">Já renovado: este é o % total de todos os prazos somados.</p>}
+    </div>
   )
 }
 

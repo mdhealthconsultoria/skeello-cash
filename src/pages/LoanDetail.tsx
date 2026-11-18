@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Pencil, Trash2, Plus, BadgeCheck, Mail, CheckCircle2, RotateCcw, Copy, RefreshCw, KeyRound, UserMinus } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Plus, BadgeCheck, Mail, CheckCircle2, RotateCcw, Copy, RefreshCw, KeyRound, UserMinus, Repeat } from 'lucide-react'
 import { useLoans } from '../hooks/useLoans'
 import { LoanFormModal } from '../components/loans/LoanFormModal'
+import { RenewLoanModal } from '../components/loans/RenewLoanModal'
+import { ValueInterestChart } from '../components/loans/ValueInterestChart'
 import { LoanPaymentModal } from '../components/loans/LoanPaymentModal'
 import { formatCurrency, formatDate } from '../lib/format'
-import { dueLabel, dueTone, formatCode, loanSummary } from '../lib/loans'
+import { dueLabel, dueTone, formatCode, isRenewed, loanSummary } from '../lib/loans'
 import { Toggle } from '../components/ui/Toggle'
 
 export default function LoanDetail() {
@@ -25,6 +27,7 @@ export default function LoanDetail() {
     updateFunderAccess,
     regenerateCode,
     releaseAccess,
+    renewLoan,
   } = useLoans()
 
   const loan = useMemo(() => loans.find((l) => l.id === id) ?? null, [loans, id])
@@ -32,6 +35,7 @@ export default function LoanDetail() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [payOpen, setPayOpen] = useState(false)
+  const [renewOpen, setRenewOpen] = useState(false)
   const [payoutFor, setPayoutFor] = useState<string | null>(null)
 
   if (loading) return null
@@ -126,7 +130,7 @@ export default function LoanDetail() {
         </div>
         <div className="space-y-1.5 text-sm">
           <Line label="Valor emprestado" value={formatCurrency(loan.principal)} />
-          <Line label={`Juros (${String(loan.borrower_rate).replace('.', ',')}%)`} value={formatCurrency(s.interest)} />
+          <Line label={`Juros (${String(loan.borrower_rate).replace('.', ',')}%${loan.daily_rate != null && !isRenewed(loan) ? ` · ${String(loan.daily_rate).replace('.', ',')}% ao dia` : ''})`} value={formatCurrency(s.interest)} />
           <Line label="Total que ele paga" value={formatCurrency(s.total)} strong />
           <Line label="Já recebido" value={formatCurrency(s.paid)} />
           <Line label="Vencimento" value={formatDate(loan.due_date)} />
@@ -135,6 +139,11 @@ export default function LoanDetail() {
           {!s.settled && (
             <button onClick={() => setPayOpen(true)} className="btn-primary">
               <Plus size={16} /> Registrar recebimento
+            </button>
+          )}
+          {!s.settled && !loan.closed && (
+            <button onClick={() => setRenewOpen(true)} className="btn-secondary">
+              <Repeat size={15} /> Pagou só os juros? Renovar
             </button>
           )}
           <button
@@ -176,6 +185,25 @@ export default function LoanDetail() {
           <p className="text-xs text-ink-400">{loan.borrower_name} ainda não entrou. Mande o código abaixo para ele ver o quanto deve.</p>
         )}
         {loan.notes && <p className="text-sm text-ink-600 dark:text-ink-300">{loan.notes}</p>}
+      </div>
+
+      {/* Gráfico: valor x juros (só o dono vê; o co-fundador só com a sua permissão) */}
+      <div className="card p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Valor e juros</h2>
+        <ValueInterestChart principal={loan.principal} interest={s.interest} principalLabel="Valor emprestado" received={s.paid} />
+        {loan.renewals.length > 0 && (
+          <div className="border-t border-ink-100 dark:border-ink-800 pt-3 space-y-1.5">
+            <p className="text-xs font-medium text-ink-500 dark:text-ink-400">Renovações ({loan.renewals.length})</p>
+            {loan.renewals.map((r) => (
+              <div key={r.id} className="flex items-center justify-between text-xs text-ink-500 dark:text-ink-400">
+                <span>
+                  {formatDate(r.old_due)} → {formatDate(r.new_due)}
+                </span>
+                <span className="font-medium text-ink-700 dark:text-ink-200">juros pagos {formatCurrency(r.interest_paid)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Código de acesso */}
@@ -231,7 +259,7 @@ export default function LoanDetail() {
                 <div className="min-w-0">
                   <p className="font-semibold text-ink-900 dark:text-ink-50 truncate">{f.funder_name}</p>
                   <p className="text-xs text-ink-400">
-                    Te emprestou {formatCurrency(f.amount)} a {String(f.rate).replace('.', ',')}% (+{formatCurrency(interest)})
+                    Te emprestou {formatCurrency(f.amount)} a {String(f.rate).replace('.', ',')}%{f.daily_rate != null && !isRenewed({ borrower_rate: f.rate, term_rate: f.term_rate }) ? ` (${String(f.daily_rate).replace('.', ',')}% ao dia)` : ''} (+{formatCurrency(interest)})
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -259,6 +287,9 @@ export default function LoanDetail() {
                     </button>
                   </div>
                   <Toggle checked={f.can_see_borrower} onChange={(v) => updateFunderAccess(f.id, { can_see_borrower: v })} label="Pode ver o nome do devedor" />
+                  {f.can_see_chart !== undefined && (
+                    <Toggle checked={Boolean(f.can_see_chart)} onChange={(v) => updateFunderAccess(f.id, { can_see_chart: v })} label="Pode ver o gráfico de valor e juros" />
+                  )}
                 </div>
               ) : f.funder_email ? (
                 <p className="flex items-center gap-1.5 text-xs text-ink-500">
@@ -323,6 +354,14 @@ export default function LoanDetail() {
       </div>
 
       <LoanFormModal open={editOpen} onClose={() => setEditOpen(false)} editLoan={loan} onSave={saveLoan} />
+
+      <RenewLoanModal
+        open={renewOpen}
+        onClose={() => setRenewOpen(false)}
+        loan={loan}
+        remaining={s.remaining}
+        onSubmit={async (interestPaid, newDue, termRate, note) => (await renewLoan(loan.id, interestPaid, newDue, termRate, note)).error}
+      />
 
       <LoanPaymentModal
         open={payOpen}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { daysUntil, formatCurrency, formatDate } from '../../lib/format'
 import { dueLabel, dueTone, round2 } from '../../lib/loans'
+import { ValueInterestChart } from './ValueInterestChart'
 import type { Borrowing, Funding, ParticipationPayment } from '../../types/database'
 
 function Payments({ items, empty }: { items: ParticipationPayment[]; empty: string }) {
@@ -148,6 +149,12 @@ export function FundingCard({ f }: { f: Funding }) {
       total={f.total}
       lines={lines}
     >
+      {f.can_see_chart && (
+        <div>
+          <p className="label">Valor e juros</p>
+          <ValueInterestChart principal={f.amount} interest={round2(f.total - f.amount)} principalLabel="Você emprestou" received={f.paid} />
+        </div>
+      )}
       <div>
         <p className="label">Pagamentos que você recebeu</p>
         <Payments items={f.payments} empty="Nenhum pagamento recebido ainda." />

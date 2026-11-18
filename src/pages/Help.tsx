@@ -81,6 +81,37 @@ const TOPICS: Topic[] = [
     ),
   },
   {
+    title: 'Juros ao dia, calculadora e renovação',
+    body: (
+      <>
+        <p className="font-medium mb-1">Juros ao dia:</p>
+        <p className="mb-3">
+          No campo de juros do empréstimo, troque "% no prazo" por "% ao dia". O app multiplica pelos dias entre a data do empréstimo e o
+          vencimento (0,5% ao dia por 30 dias = 15%). Para já vir preenchido, defina o seu juros ao dia padrão em Configurações &gt;
+          Empréstimos.
+        </p>
+        <p className="font-medium mb-1">Calculadora:</p>
+        <p className="mb-3">
+          Em Empréstimos, toque no ícone da calculadora. Ela mostra juros do prazo, total, juros por dia e quanto você ganha se a pessoa
+          renovar várias vezes. Não grava nada.
+        </p>
+        <p className="font-medium mb-1">Pagou só os juros? Renove:</p>
+        <Steps
+          items={[
+            'Abra o empréstimo e toque em "Pagou só os juros? Renovar".',
+            'Confira os juros pagos, o novo vencimento e o juros do novo prazo.',
+            'Confirme. O valor emprestado continua, o vencimento muda e os juros do novo prazo são somados.',
+          ]}
+        />
+        <p className="font-medium mt-3 mb-1">Gráfico de valor e juros:</p>
+        <p>
+          Só você, dono do empréstimo, vê o gráfico. Para um co-fundador ver o gráfico dele, ligue "Pode ver o gráfico de valor e juros"
+          no cartão dele.
+        </p>
+      </>
+    ),
+  },
+  {
     title: 'Código do empréstimo: como dar acesso a alguém',
     body: (
       <>
@@ -188,7 +219,7 @@ const TOPICS: Topic[] = [
           <strong>Extrato:</strong> todas as movimentações em ordem.
         </li>
         <li>
-          <strong>Análises:</strong> gráficos para entender seu dinheiro.
+          <strong>Análises:</strong> visão geral, mês a mês (escolha o mês ou um intervalo de datas), projeções dos próximos meses e análise dos empréstimos.
         </li>
       </ul>
     ),

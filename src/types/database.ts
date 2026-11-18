@@ -23,6 +23,8 @@ export interface UserSettings {
   notify_overdue: boolean
   notify_summary: boolean
   demo_seeded: boolean
+  /** % ao dia que já vem preenchido ao criar um empréstimo (0 = sem padrão) */
+  default_daily_rate?: number
   updated_at: string
 }
 
@@ -204,6 +206,10 @@ export interface Loan {
   notes: string | null
   closed: boolean
   share_code: string
+  /** % ao dia combinado (null = juros fixo no prazo) */
+  daily_rate?: number | null
+  /** % de um prazo só (o que se soma a cada renovação) */
+  term_rate?: number | null
   created_at: string
   updated_at: string
 }
@@ -219,6 +225,9 @@ export interface LoanFunder {
   rate: number
   can_see_borrower: boolean
   can_see_payments: boolean
+  can_see_chart?: boolean
+  daily_rate?: number | null
+  term_rate?: number | null
   created_at: string
 }
 
@@ -243,7 +252,20 @@ export interface FunderPayment {
   created_at: string
 }
 
+export interface LoanRenewal {
+  id: string
+  loan_id: string
+  owner_id: string
+  interest_paid: number
+  old_due: string
+  new_due: string
+  term_rate: number
+  note: string | null
+  created_at: string
+}
+
 export interface LoanFull extends Loan {
+  renewals: LoanRenewal[]
   funders: LoanFunder[]
   payments: LoanPayment[]
   funder_payments: FunderPayment[]
@@ -281,5 +303,6 @@ export interface Funding {
   closed: boolean
   borrower_name: string | null
   can_see_borrower: boolean
+  can_see_chart?: boolean
   payments: ParticipationPayment[]
 }

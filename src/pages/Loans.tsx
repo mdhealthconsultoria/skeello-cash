@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ChevronRight, KeyRound } from 'lucide-react'
+import { Plus, ChevronRight, KeyRound, Calculator } from 'lucide-react'
 import { useLoans, useParticipations } from '../hooks/useLoans'
 import { LoanFormModal } from '../components/loans/LoanFormModal'
+import { LoanCalculatorModal } from '../components/loans/LoanCalculatorModal'
 import { JoinLoanModal } from '../components/loans/JoinLoanModal'
 import { BorrowingCard, FundingCard } from '../components/loans/ParticipationCard'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -20,6 +21,7 @@ export default function Loans() {
   const [tab, setTab] = useState<Tab>('mine')
   const [formOpen, setFormOpen] = useState(false)
   const [joinOpen, setJoinOpen] = useState(false)
+  const [calcOpen, setCalcOpen] = useState(false)
 
   const rows = useMemo(() => loans.map((l) => ({ loan: l, s: loanSummary(l) })), [loans])
   const active = rows.filter((r) => !r.loan.closed)
@@ -44,6 +46,9 @@ export default function Loans() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink-900 dark:text-ink-50">Empréstimos</h1>
         <div className="flex items-center gap-2">
+          <button onClick={() => setCalcOpen(true)} className="btn-secondary px-3" aria-label="Calculadora" title="Calculadora de empréstimo">
+            <Calculator size={16} />
+          </button>
           <button onClick={() => setJoinOpen(true)} className="btn-secondary">
             <KeyRound size={15} /> Tenho um código
           </button>
@@ -137,6 +142,7 @@ export default function Loans() {
           </div>
         ))}
 
+      <LoanCalculatorModal open={calcOpen} onClose={() => setCalcOpen(false)} />
       <JoinLoanModal
         open={joinOpen}
         onClose={() => setJoinOpen(false)}

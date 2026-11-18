@@ -16,6 +16,25 @@ export function withRate(amount: number, ratePercent: number): number {
   return round2(amount * (1 + ratePercent / 100))
 }
 
+/** Dias entre duas datas (AAAA-MM-DD). Nunca menos que 0. */
+export function daysBetween(from: string, to: string): number {
+  if (!from || !to) return 0
+  const a = new Date(`${from}T00:00:00`).getTime()
+  const b = new Date(`${to}T00:00:00`).getTime()
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0
+  return Math.max(0, Math.round((b - a) / 86400000))
+}
+
+/** % ao dia -> % do prazo (juros simples): 0,5% ao dia por 30 dias = 15%. */
+export function rateFromDaily(dailyPercent: number, days: number): number {
+  return Math.round(dailyPercent * days * 100) / 100
+}
+
+/** Um empréstimo renovado guarda os juros de todos os prazos somados no % total. */
+export function isRenewed(l: { borrower_rate: number; term_rate?: number | null }): boolean {
+  return l.term_rate != null && Math.abs(l.term_rate - l.borrower_rate) > 0.004
+}
+
 export function parseMoney(value: string): number {
   const v = value.trim()
   const n = Number(v.includes(',') ? v.replace(/\./g, '').replace(',', '.') : v)

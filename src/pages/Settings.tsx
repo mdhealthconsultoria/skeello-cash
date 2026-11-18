@@ -30,6 +30,8 @@ export default function Settings() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [editSrc, setEditSrc] = useState<File | string | null>(null)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [dailyRate, setDailyRate] = useState('')
+  const [savingDaily, setSavingDaily] = useState(false)
 
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
@@ -67,7 +69,11 @@ export default function Settings() {
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => setSettings(data as UserSettings | null))
+      .then(({ data }) => {
+        setSettings(data as UserSettings | null)
+        const d = Number((data as UserSettings | null)?.default_daily_rate ?? 0)
+        setDailyRate(d > 0 ? String(d).replace('.', ',') : '')
+      })
   }, [user])
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -123,6 +129,18 @@ export default function Settings() {
     toast.success('Perfil atualizado!')
   }
 
+  async function saveDailyRate() {
+    if (!user) return
+    const n = Number(dailyRate.trim().replace(',', '.') || '0')
+    if (!Number.isFinite(n) || n < 0 || n > 100) return toast.error('Digite um % válido, entre 0 e 100.')
+    setSavingDaily(true)
+    const { error } = await supabase.from('user_settings').update({ default_daily_rate: n }).eq('user_id', user.id)
+    setSavingDaily(false)
+    if (error) return toast.error('Não consegui salvar. Rode a migração 0012 no Supabase.')
+    setSettings((cur) => (cur ? { ...cur, default_daily_rate: n } : cur))
+    toast.success('Juros ao dia salvo!')
+  }
+
   async function updateSetting(patch: Partial<UserSettings>) {
     if (!user) return
     const next = { ...settings, ...patch } as UserSettings
@@ -172,7 +190,7 @@ export default function Settings() {
             </label>
           </div>
           {(photoFile || photoPreview) && (
-            <button type="button" onClick={() => setEditSrc(photoFile ?? photoPreview)} className="mt-2 text-xs font-medium text-ink-500 hover:text-ink-900 dark:hover:text-white">
+            <button type="button" onClick={() => setEditSrc(photoFile ?? photoPreview)} className="block mx-auto text-xs font-medium text-ink-500 hover:text-ink-900 dark:hover:text-white">
               Ajustar foto (tamanho, posição, brilho)
             </button>
           )}
@@ -285,6 +303,28 @@ export default function Settings() {
           <InstallAppButton />
         </section>
       )}
+
+      {/* Empréstimos */}
+      <section className="card p-5">
+        <h2 className="font-semibold text-ink-900 dark:text-ink-50 mb-1">Empréstimos</h2>
+        <p className="text-xs text-ink-400 mb-4">
+          O juros ao dia que você combina com mais frequência. Ele já vem preenchido ao criar um empréstimo e na calculadora. Em cada empréstimo você ainda pode trocar.
+        </p>
+        <label className="label">Juros ao dia padrão (%)</label>
+        <div className="flex gap-2">
+          <input
+            inputMode="decimal"
+            value={dailyRate}
+            onChange={(e) => setDailyRate(e.target.value)}
+            className="input"
+            placeholder="Ex: 0,5"
+          />
+          <button type="button" onClick={saveDailyRate} disabled={savingDaily} className="btn-primary shrink-0 px-4">
+            {savingDaily ? '...' : 'Salvar'}
+          </button>
+        </div>
+        <p className="text-xs text-ink-400 mt-2">Deixe vazio para não ter padrão. Ex: 0,5% ao dia = 15% em 30 dias.</p>
+      </section>
 
       {/* Notificações */}
       <section className="card p-5">

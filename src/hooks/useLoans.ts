@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { Borrowing, Funding, LoanFull } from '../types/database'
+import type { Borrowing, Funding, LoanFull, LoanRenewal } from '../types/database'
 
 export interface LoanInput {
   borrower_name: string
@@ -12,6 +12,9 @@ export interface LoanInput {
   issue_date: string
   due_date: string
   notes: string | null
+  /** só vai ao banco quando o juros é ao dia (ou o empréstimo já usa esses campos) */
+  daily_rate?: number | null
+  term_rate?: number
 }
 
 export interface FunderInput {
@@ -23,6 +26,9 @@ export interface FunderInput {
   rate: number
   can_see_borrower: boolean
   can_see_payments: boolean
+  can_see_chart?: boolean
+  daily_rate?: number | null
+  term_rate?: number
 }
 
 const SELECT = '*, funders:loan_funders(*), payments:loan_payments(*), funder_payments(*)'
@@ -30,6 +36,7 @@ const SELECT = '*, funders:loan_funders(*), payments:loan_payments(*), funder_pa
 function sortLoan(l: LoanFull): LoanFull {
   return {
     ...l,
+    renewals: [...(l.renewals ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at)),
     funders: [...(l.funders ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)),
     payments: [...(l.payments ?? [])].sort(
       (a, b) => b.paid_at.localeCompare(a.paid_at) || b.created_at.localeCompare(a.created_at)
@@ -56,7 +63,11 @@ export function useLoans() {
       .order('due_date', { ascending: true })
     if (err) setError(err.message)
     else {
-      setLoans(((data ?? []) as LoanFull[]).map(sortLoan))
+      // renovações vêm à parte: se a tabela ainda não existir no banco, o resto continua funcionando
+      const { data: ren } = await supabase.from('loan_renewals').select('*').eq('owner_id', user.id)
+      const byLoan = new Map<string, LoanRenewal[]>()
+      for (const r of (ren ?? []) as LoanRenewal[]) byLoan.set(r.loan_id, [...(byLoan.get(r.loan_id) ?? []), r])
+      setLoans(((data ?? []) as LoanFull[]).map((l) => sortLoan({ ...l, renewals: byLoan.get(l.id) ?? [] })))
       setError(null)
     }
     setLoading(false)
@@ -85,6 +96,9 @@ export function useLoans() {
         rate: f.rate,
         can_see_borrower: f.can_see_borrower,
         can_see_payments: f.can_see_payments,
+        ...(f.can_see_chart !== undefined ? { can_see_chart: f.can_see_chart } : {}),
+        ...(f.daily_rate !== undefined ? { daily_rate: f.daily_rate } : {}),
+        ...(f.term_rate !== undefined ? { term_rate: f.term_rate } : {}),
       }
       const { error: e3 } = f.id
         ? await supabase.from('loan_funders').update(row).eq('id', f.id)
@@ -167,8 +181,21 @@ export function useLoans() {
     return { error: err?.message ?? null }
   }
 
-  async function updateFunderAccess(funderId: string, patch: { can_see_borrower?: boolean; can_see_payments?: boolean }) {
+  async function updateFunderAccess(funderId: string, patch: { can_see_borrower?: boolean; can_see_payments?: boolean; can_see_chart?: boolean }) {
     const { error: err } = await supabase.from('loan_funders').update(patch).eq('id', funderId)
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  /** O devedor pagou só os juros: registra o pagamento, empurra o vencimento e soma os juros do novo prazo. */
+  async function renewLoan(loanId: string, interestPaid: number, newDue: string, termRate: number, note?: string) {
+    const { error: err } = await supabase.rpc('renew_loan', {
+      p_loan_id: loanId,
+      p_interest_paid: interestPaid,
+      p_new_due: newDue,
+      p_term_rate: termRate,
+      p_note: note || null,
+    })
     if (!err) await fetchLoans()
     return { error: err?.message ?? null }
   }
@@ -195,6 +222,7 @@ export function useLoans() {
     error,
     refetch: fetchLoans,
     regenerateCode,
+    renewLoan,
     releaseAccess,
     saveLoan,
     deleteLoan,
