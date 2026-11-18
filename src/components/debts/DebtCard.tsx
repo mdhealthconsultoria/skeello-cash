@@ -1,4 +1,4 @@
-import { ArrowRight, Link2, Clock, Pencil, Trash2 } from 'lucide-react'
+import { ArrowRight, Link2, Clock, Pencil, Trash2, Send } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { StatusBadge } from '../ui/StatusBadge'
 import { formatCurrency, formatDate, daysUntil } from '../../lib/format'
@@ -10,12 +10,14 @@ export function DebtCard({
   onRegisterPayment,
   onEdit,
   onDelete,
+  onCharge,
 }: {
   debt: DebtWithRelations
   onClick?: () => void
   onRegisterPayment?: () => void
   onEdit?: () => void
   onDelete?: () => void
+  onCharge?: () => void
 }) {
   const remaining = debt.totals.remaining_amount
   const isReceivable = debt.type === 'receivable'
@@ -93,6 +95,17 @@ export function DebtCard({
               {dueLabel && <p className="text-xs text-ink-400 mt-0.5">{dueLabel}</p>}
             </div>
 
+            {debt.status !== 'paid' && debt.status !== 'cancelled' && isReceivable && onCharge && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onCharge()
+                }}
+                className="text-xs font-medium text-brand-600 dark:text-brand-400 flex items-center gap-1 shrink-0 mr-3"
+              >
+                <Send size={12} /> Cobrar
+              </button>
+            )}
             {debt.status !== 'paid' && debt.status !== 'cancelled' && onRegisterPayment && (
               <button
                 onClick={(e) => {

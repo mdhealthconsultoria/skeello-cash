@@ -61,6 +61,10 @@ const TOPICS: Topic[] = [
           ]}
         />
         <p className="mt-2">O saldo restante e o status (aberta, paga, atrasada) se atualizam sozinhos.</p>
+        <p className="mt-2">
+          Se a pessoa usa o app, você escolhe enviar um convite (ela confirma) ou só registrar para você. Se ela não usa o app, fica só no
+          seu controle. Em qualquer caso, toque em "Cobrar" numa dívida a receber para mandar a cobrança pelo WhatsApp.
+        </p>
       </>
     ),
   },

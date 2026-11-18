@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Plus, Pencil, Archive, Trash2, Phone, Mail, Receipt } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Archive, Trash2, Phone, Mail, Receipt, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { sendCharge } from '../lib/charge'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { usePeople } from '../hooks/usePeople'
 import { useDebts } from '../hooks/useDebts'
@@ -135,8 +136,8 @@ export default function PersonDetail() {
         </div>
       </div>
 
-      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} />
-      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} />
+      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} onCharge={sendCharge} />
+      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} onCharge={sendCharge} />
 
       <AddPersonModal open={editOpen} onClose={() => setEditOpen(false)} editPerson={person} />
       <AddDebtModal
@@ -194,12 +195,14 @@ function DebtSection({
   onPay,
   onEdit,
   onDelete,
+  onCharge,
 }: {
   title: string
   items: DebtWithRelations[]
   onPay: (d: DebtWithRelations) => void
   onEdit: (d: DebtWithRelations) => void
   onDelete: (d: DebtWithRelations) => void
+  onCharge: (d: DebtWithRelations) => void
 }) {
   if (items.length === 0) return null
   return (
@@ -244,6 +247,11 @@ function DebtSection({
                   </p>
                 )}
               </div>
+              {d.status !== 'paid' && d.status !== 'cancelled' && d.type === 'receivable' && (
+                <button onClick={() => onCharge(d)} className="text-xs font-medium text-brand-600 dark:text-brand-400 flex items-center gap-1 mr-3">
+                  <Send size={12} /> Cobrar
+                </button>
+              )}
               {d.status !== 'paid' && d.status !== 'cancelled' && (
                 <button onClick={() => onPay(d)} className="text-xs font-medium text-ink-900 dark:text-white flex items-center gap-1">
                   <Receipt size={13} /> Registrar

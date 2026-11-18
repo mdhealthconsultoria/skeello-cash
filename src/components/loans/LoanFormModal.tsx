@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
-import { PartyPicker, type PartyValue } from './PartyPicker'
+import { PartyPicker, cleanEmail, type PartyValue } from './PartyPicker'
 import { formatCurrency } from '../../lib/format'
 import { daysBetween, isRenewed, parseMoney, rateFromDaily, round2, withRate } from '../../lib/loans'
 import { useDefaultDailyRate } from '../../hooks/useDefaultDailyRate'
@@ -118,8 +118,17 @@ export function LoanFormModal({
   const termOf = (value: string, unit: RateUnit) => (unit === 'day' ? rateFromDaily(parseMoney(value), days) : parseMoney(value))
   const loanRenewed = Boolean(editLoan && isRenewed(editLoan))
 
+  // Com co-fundador, o valor que você empresta ao devedor é o mesmo que você pegou com ele.
+  // (Empréstimo antigo que mistura dinheiro seu com o do co-fundador continua editável.)
+  const hasFunders = funders.some((f) => f.party.name.trim() || f.amount.trim())
+  const legacyOwn = Boolean(
+    editLoan && editLoan.funders.length > 0 && Math.abs(editLoan.principal - editLoan.funders.reduce((s, x) => s + x.amount, 0)) > 0.009
+  )
+  const principalFromFunders = hasFunders && !legacyOwn
+
   const calc = useMemo(() => {
-    const p = parseMoney(principal)
+    const fundedSum = round2(funders.reduce((s, f) => s + parseMoney(f.amount), 0))
+    const p = principalFromFunders ? fundedSum : parseMoney(principal)
     const r = rateUnit === 'day' ? rateFromDaily(parseMoney(rate), days) : parseMoney(rate)
     const total = withRate(p, r)
     const rows = funders.map((f) => {
@@ -131,7 +140,7 @@ export function LoanFormModal({
     const funderTotal = round2(rows.reduce((s, x) => s + x.total, 0))
     const own = round2(Math.max(p - funded, 0))
     return { p, r, total, rows, funded, funderTotal, own, profit: round2(total - funderTotal - own) }
-  }, [principal, rate, rateUnit, funders, days])
+  }, [principal, rate, rateUnit, funders, days, principalFromFunders])
 
   function patchFunder(key: string, patch: Partial<FunderDraft>) {
     setFunders((prev) => prev.map((f) => (f.key === key ? { ...f, ...patch } : f)))
@@ -140,7 +149,7 @@ export function LoanFormModal({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const filled = funders.filter((f) => f.party.name.trim() || f.amount.trim())
-    if (calc.p <= 0) return toast.error('Informe o valor emprestado.')
+    if (calc.p <= 0) return toast.error(principalFromFunders ? 'Informe o valor que o co-fundador te emprestou.' : 'Informe o valor emprestado.')
     if (!dueDate) return toast.error('Informe a data de vencimento.')
     if (calc.funded > calc.p + 0.009) {
       return toast.error('Os valores dos co-fundadores somam mais que o valor emprestado.')
@@ -154,7 +163,7 @@ export function LoanFormModal({
     const { error } = await onSave(
       {
         borrower_name: borrower.name.trim(),
-        borrower_email: borrower.email.trim() || null,
+        borrower_email: cleanEmail(borrower.email),
         borrower_user_id: borrower.userId,
         principal: calc.p,
         borrower_rate: calc.r,
@@ -171,7 +180,7 @@ export function LoanFormModal({
       filled.map((f) => ({
         id: f.id,
         funder_name: f.party.name.trim(),
-        funder_email: f.party.email.trim() || null,
+        funder_email: cleanEmail(f.party.email),
         funder_user_id: f.party.userId,
         amount: parseMoney(f.amount),
         rate: f.renewed ? parseMoney(f.rate) : termOf(f.rate, f.unit),
@@ -261,17 +270,25 @@ export function LoanFormModal({
           <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-50">2. Para quem você vai emprestar (devedor)</h3>
           <PartyPicker value={borrower} onChange={setBorrower} nameLabel="Nome do devedor" />
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Valor que você empresta ao devedor (R$) *</label>
-              <input
-                required
-                inputMode="decimal"
-                value={principal}
-                onChange={(e) => setPrincipal(e.target.value)}
-                className="input"
-                placeholder="500,00"
-              />
-            </div>
+            {principalFromFunders ? (
+              <div>
+                <label className="label">Valor que você empresta ao devedor</label>
+                <p className="input flex items-center font-semibold bg-ink-50 dark:bg-ink-800">{formatCurrency(calc.p)}</p>
+                <p className="text-xs text-ink-400 mt-1">É o mesmo valor que você pegou com o co-fundador.</p>
+              </div>
+            ) : (
+              <div>
+                <label className="label">Valor que você empresta ao devedor (R$) *</label>
+                <input
+                  required
+                  inputMode="decimal"
+                  value={principal}
+                  onChange={(e) => setPrincipal(e.target.value)}
+                  className="input"
+                  placeholder="500,00"
+                />
+              </div>
+            )}
             <div>
               <label className="label">Juros que o devedor paga *</label>
               <RateField

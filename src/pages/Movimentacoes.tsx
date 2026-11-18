@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { sendCharge } from '../lib/charge'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useDebts } from '../hooks/useDebts'
 import { DebtCard } from '../components/debts/DebtCard'
@@ -141,6 +142,7 @@ export default function Movimentacoes() {
               onRegisterPayment={() => setPaymentDebt(d)}
               onEdit={() => setEditingDebt(d)}
               onDelete={() => setDeletingDebt(d)}
+              onCharge={() => sendCharge(d)}
             />
           ))}
         </div>

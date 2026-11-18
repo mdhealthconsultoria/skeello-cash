@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import toast from 'react-hot-toast'
 import { Link2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
+import { Toggle } from '../ui/Toggle'
 import { usePeople } from '../../hooks/usePeople'
 import { useCategories } from '../../hooks/useCategories'
 import { useDebts } from '../../hooks/useDebts'
@@ -40,6 +41,7 @@ export function AddDebtModal({
   const [installments, setInstallments] = useState(editDebt?.installments ?? 1)
   const [notes, setNotes] = useState(editDebt?.notes ?? '')
   const [loading, setLoading] = useState(false)
+  const [invite, setInvite] = useState(true)
 
   useEffect(() => {
     if (!open) return
@@ -52,11 +54,14 @@ export function AddDebtModal({
     setMethod(editDebt?.agreed_payment_method ?? '')
     setInstallments(editDebt?.installments ?? 1)
     setNotes(editDebt?.notes ?? '')
+    setInvite(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editDebt?.id])
 
   const selectedPerson = useMemo(() => people.find((p) => p.id === personId), [people, personId])
-  const isShared = Boolean(selectedPerson?.linked_user_id)
+  const hasApp = Boolean(selectedPerson?.linked_user_id)
+  // convite só vai se a pessoa tem o app E você quer; senão é um registro só seu (e você cobra por fora)
+  const isShared = hasApp && invite
 
   // Conta na hora: o que já está em aberto com essa pessoa + o valor que está sendo digitado.
   // Só conta o que falta pagar (pagamentos já feitos saem da conta).
@@ -209,9 +214,20 @@ export function AddDebtModal({
               Pessoa e tipo não podem mudar depois de criada — exclua e crie outra se precisar trocar.
             </p>
           )}
-          {!editDebt && isShared && (
-            <p className="text-xs text-brand-600 dark:text-brand-400 mt-1.5 flex items-center gap-1">
-              <Link2 size={12} /> {selectedPerson!.name} tem conta no Skeello Cash — essa dívida vai virar um convite pra ela confirmar, e depois fica sincronizada dos dois lados.
+          {!editDebt && selectedPerson && hasApp && (
+            <div className="mt-2 rounded-xl bg-ink-50 dark:bg-ink-800 p-3 space-y-2">
+              <Toggle checked={invite} onChange={setInvite} label={`Enviar convite para ${selectedPerson.name} confirmar no app`} />
+              <p className="text-xs text-ink-400 flex items-start gap-1">
+                <Link2 size={12} className="mt-0.5 shrink-0" />
+                {invite
+                  ? 'Ela recebe o convite, confirma, e a dívida fica sincronizada dos dois lados.'
+                  : 'Fica só no seu controle: ela não vê nada. Você pode cobrar pelo WhatsApp depois.'}
+              </p>
+            </div>
+          )}
+          {!editDebt && selectedPerson && !hasApp && (
+            <p className="text-xs text-ink-400 mt-1.5">
+              {selectedPerson.name} não usa o app? Sem problema: fica registrado só para você. Depois use "Cobrar" para mandar a cobrança pelo WhatsApp.
             </p>
           )}
           {isSharedDebt && (
