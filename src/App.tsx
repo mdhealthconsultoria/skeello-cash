@@ -14,7 +14,6 @@ import People from './pages/People'
 import ArchivedPeople from './pages/ArchivedPeople'
 import PersonDetail from './pages/PersonDetail'
 import Movimentacoes from './pages/Movimentacoes'
-import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import UpcomingDue from './pages/UpcomingDue'
 import SearchPage from './pages/Search'
@@ -96,14 +95,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/analises"
-              element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/analises" element={<Navigate to="/movimentacoes" replace state={{ tab: 'analytics' }} />} />
             <Route
               path="/configuracoes"
               element={

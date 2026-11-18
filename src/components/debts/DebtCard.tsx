@@ -2,6 +2,7 @@ import { ArrowRight, Link2, Clock, Pencil, Trash2, Send } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { StatusBadge } from '../ui/StatusBadge'
 import { formatCurrency, formatDate, daysUntil } from '../../lib/format'
+import { lateInterest } from '../../lib/loans'
 import type { DebtWithRelations } from '../../types/database'
 
 export function DebtCard({
@@ -11,6 +12,7 @@ export function DebtCard({
   onEdit,
   onDelete,
   onCharge,
+  late,
 }: {
   debt: DebtWithRelations
   onClick?: () => void
@@ -18,10 +20,14 @@ export function DebtCard({
   onEdit?: () => void
   onDelete?: () => void
   onCharge?: () => void
+  /** padrão de atraso do usuário (% ao dia e multa %) */
+  late?: { rate: number; fee: number }
 }) {
   const remaining = debt.totals.remaining_amount
   const isReceivable = debt.type === 'receivable'
   const days = daysUntil(debt.due_date)
+  const isOpen = debt.status !== 'paid' && debt.status !== 'cancelled'
+  const li = isOpen ? lateInterest(remaining, debt.due_date, debt.late_daily_rate ?? late?.rate ?? 0, late?.fee ?? 0) : null
 
   let dueLabel: string | null = null
   if (debt.due_date && debt.status !== 'paid' && debt.status !== 'cancelled') {
@@ -93,6 +99,11 @@ export function DebtCard({
                 <p className="text-xs text-ink-400">de {formatCurrency(debt.amount)}</p>
               )}
               {dueLabel && <p className="text-xs text-ink-400 mt-0.5">{dueLabel}</p>}
+              {li && li.extra > 0 && (
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mt-0.5">
+                  + {formatCurrency(li.extra)} de juros de atraso = {formatCurrency(li.total)}
+                </p>
+              )}
             </div>
 
             {debt.status !== 'paid' && debt.status !== 'cancelled' && isReceivable && onCharge && (

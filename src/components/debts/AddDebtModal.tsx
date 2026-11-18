@@ -6,6 +6,7 @@ import { Toggle } from '../ui/Toggle'
 import { usePeople } from '../../hooks/usePeople'
 import { useCategories } from '../../hooks/useCategories'
 import { useFriends } from '../../hooks/useFriends'
+import { useInterestDefaults } from '../../hooks/useInterestDefaults'
 import { useDebts } from '../../hooks/useDebts'
 import { useAuth } from '../../contexts/AuthContext'
 import { sendPush } from '../../lib/push'
@@ -31,6 +32,7 @@ export function AddDebtModal({
   const { people } = usePeople()
   const { categories } = useCategories()
   const { friends, available: friendsAvailable } = useFriends()
+  const interest = useInterestDefaults()
   const { debts, createDebt, updateDebt } = useDebts()
 
   const [type, setType] = useState<DebtType>(editDebt?.type ?? defaultType)
@@ -44,6 +46,7 @@ export function AddDebtModal({
   const [notes, setNotes] = useState(editDebt?.notes ?? '')
   const [loading, setLoading] = useState(false)
   const [invite, setInvite] = useState(true)
+  const [lateRate, setLateRate] = useState(editDebt?.late_daily_rate != null ? String(editDebt.late_daily_rate).replace('.', ',') : '')
 
   useEffect(() => {
     if (!open) return
@@ -57,6 +60,7 @@ export function AddDebtModal({
     setInstallments(editDebt?.installments ?? 1)
     setNotes(editDebt?.notes ?? '')
     setInvite(true)
+    setLateRate(editDebt?.late_daily_rate != null ? String(editDebt.late_daily_rate).replace('.', ',') : '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editDebt?.id])
 
@@ -87,6 +91,12 @@ export function AddDebtModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    const lateParsed = lateRate.trim() === '' ? null : Number(lateRate.replace(',', '.'))
+    if (lateParsed !== null && (!Number.isFinite(lateParsed) || lateParsed < 0)) {
+      toast.error('Juros de atraso inválido.')
+      return
+    }
+    const latePart = lateParsed !== null || editDebt?.late_daily_rate !== undefined ? { late_daily_rate: lateParsed } : {}
     if (!personId) {
       toast.error('Selecione uma pessoa.')
       return
@@ -108,6 +118,7 @@ export function AddDebtModal({
         agreed_payment_method: method || null,
         installments,
         notes: notes || null,
+        ...latePart,
       })
       setLoading(false)
       if (error) {
@@ -132,6 +143,7 @@ export function AddDebtModal({
       notes: notes || null,
       counterparty_user_id: isShared ? selectedPerson!.linked_user_id : null,
       share_status: isShared ? 'pending' : 'none',
+      ...latePart,
     })
     setLoading(false)
 
@@ -282,6 +294,18 @@ export function AddDebtModal({
               className="input"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="label">Juros de atraso (% ao dia, opcional)</label>
+          <input
+            inputMode="decimal"
+            value={lateRate}
+            onChange={(e) => setLateRate(e.target.value)}
+            className="input"
+            placeholder={interest.lateRate > 0 ? `Padrão: ${String(interest.lateRate).replace('.', ',')}%` : 'Vazio = sem juros de atraso'}
+          />
+          <p className="text-xs text-ink-400 mt-1">Depois do vencimento o app calcula o valor atualizado. O padrão fica em Configurações.</p>
         </div>
 
         {preview && (

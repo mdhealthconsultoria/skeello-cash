@@ -15,7 +15,22 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, Info, TrendingUp } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Gauge,
+  Info,
+  Receipt,
+  TrendingUp,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useLoans } from '../hooks/useLoans'
@@ -23,14 +38,17 @@ import { formatCurrency, formatDate } from '../lib/format'
 import { loanSummary } from '../lib/loans'
 import {
   agingReceivable,
+  byMethod,
   delta,
   flowsFor,
+  healthFor,
   monthlySeries,
   positionNow,
   previousRange,
   projectMonths,
   rangeFor,
   topPeople,
+  upcomingItems,
   type DebtRow,
   type PaymentRow,
   type PeriodMode,
@@ -74,6 +92,7 @@ type RawPayment = {
   debt_id: string
   amount: number
   payment_date: string
+  method?: string | null
   debt: { type: 'receivable' | 'payable' } | { type: 'receivable' | 'payable' }[] | null
 }
 
@@ -90,7 +109,7 @@ type RawDebt = {
   person: { name: string } | { name: string }[] | null
 }
 
-export default function Analytics() {
+export default function Analytics({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { loans, loading: loansLoading } = useLoans()
@@ -116,7 +135,7 @@ export default function Analytics() {
           .from('debts')
           .select('id, type, amount, status, due_date, issue_date, category_id, person_id, archived, person:people(name)')
           .eq('user_id', user.id),
-        supabase.from('payments').select('id, debt_id, amount, payment_date, debt:debts!inner(type)').eq('user_id', user.id),
+        supabase.from('payments').select('id, debt_id, amount, payment_date, method, debt:debts!inner(type)').eq('user_id', user.id),
         supabase.from('categories').select('id, name').or(`user_id.eq.${user.id},user_id.is.null`),
       ])
 
@@ -125,6 +144,7 @@ export default function Analytics() {
         debt_id: p.debt_id,
         amount: Number(p.amount),
         payment_date: p.payment_date,
+        method: p.method ?? null,
         type: (Array.isArray(p.debt) ? p.debt[0]?.type : p.debt?.type) ?? 'receivable',
       }))
       const paidBy = new Map<string, number>()
@@ -167,6 +187,9 @@ export default function Analytics() {
   const aging = useMemo(() => agingReceivable(debts, loans), [debts, loans])
   const topIn = useMemo(() => topPeople(debts, 'receivable'), [debts])
   const topOut = useMemo(() => topPeople(debts, 'payable'), [debts])
+  const health = useMemo(() => healthFor(debts, payments), [debts, payments])
+  const upcoming = useMemo(() => upcomingItems(debts, loans), [debts, loans])
+  const methods = useMemo(() => byMethod(range, payments), [range, payments])
 
   const projection = useMemo(() => {
     const base = projectMonths(debts, loans, horizon, 1)
@@ -250,10 +273,12 @@ export default function Analytics() {
 
   return (
     <div className="space-y-5 tabular-nums">
-      <div>
-        <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-50">Análises</h1>
-        <p className="text-ink-400 text-sm">Como seu dinheiro andou, onde está agora e para onde vai.</p>
-      </div>
+      {!embedded && (
+        <div>
+          <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-50">Análises</h1>
+          <p className="text-ink-400 text-sm">Como seu dinheiro andou, onde está agora e para onde vai.</p>
+        </div>
+      )}
 
       {/* Abas */}
       <div className="flex gap-1 p-1 rounded-xl bg-ink-100 dark:bg-ink-800 overflow-x-auto">
@@ -322,6 +347,8 @@ export default function Analytics() {
 
           {tab === 'overview' && (
             <>
+              <Hero pos={pos} />
+
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <Kpi label="Recebido" value={flows.received} tone="text-brand-600 dark:text-brand-400" change={delta(flows.received, prevFlows.received)} />
                 <Kpi label="Pago" value={flows.paid} tone="text-red-600 dark:text-red-400" change={delta(flows.paid, prevFlows.paid)} invert />
@@ -349,6 +376,70 @@ export default function Analytics() {
                 <Kpi label="Novos a receber" value={flows.newReceivable} sub="criados no período" />
                 <Kpi label="Novos a pagar" value={flows.newPayable} sub="criados no período" />
               </div>
+
+              <Section title="Saúde das suas cobranças" subtitle="Calculado com tudo que você já registrou.">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  <Metric
+                    icon={Gauge}
+                    label="Taxa de recebimento"
+                    value={`${Math.round(health.collectionRate * 100)}%`}
+                    hint="do que já venceu, quanto entrou"
+                    tone={health.collectionRate >= 0.8 ? 'good' : health.collectionRate >= 0.5 ? 'mid' : 'bad'}
+                  />
+                  <Metric
+                    icon={Clock3}
+                    label="Pagam em dia"
+                    value={health.onTimeRate === null ? '—' : `${Math.round(health.onTimeRate)}%`}
+                    hint="das dívidas quitadas, até o vencimento"
+                    tone={health.onTimeRate === null ? 'mid' : health.onTimeRate >= 70 ? 'good' : health.onTimeRate >= 40 ? 'mid' : 'bad'}
+                  />
+                  <Metric
+                    icon={CalendarClock}
+                    label="Prazo médio"
+                    value={health.avgDaysToReceive === null ? '—' : `${Math.round(health.avgDaysToReceive)} dias`}
+                    hint="para uma dívida ser quitada"
+                  />
+                  <Metric icon={Receipt} label="Ticket médio" value={formatCurrency(health.avgTicket)} hint="valor de cada dívida a receber" />
+                  <Metric icon={Users} label="Pessoas em aberto" value={String(health.peopleOpen)} hint="com algo a receber ou a pagar" />
+                  <Metric
+                    icon={Wallet}
+                    label="Maior devedor"
+                    value={health.biggest ? health.biggest.name : '—'}
+                    hint={health.biggest ? formatCurrency(health.biggest.amount) : 'ninguém te deve'}
+                  />
+                </div>
+              </Section>
+
+              {upcoming.length > 0 && (
+                <Section title="Próximos vencimentos" subtitle="O que vence nos próximos 30 dias e o que já passou.">
+                  <ul className="divide-y divide-ink-100 dark:divide-ink-800">
+                    {upcoming.map((u) => (
+                      <li
+                        key={u.key}
+                        onClick={() => navigate(u.loanId ? `/emprestimos/${u.loanId}` : `/pessoas/${u.personId}`)}
+                        className="flex items-center gap-3 py-2.5 cursor-pointer"
+                      >
+                        <span
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                            u.kind === 'in' ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600' : 'bg-red-50 dark:bg-red-500/10 text-red-600'
+                          }`}
+                        >
+                          {u.kind === 'in' ? <ArrowDownRight size={16} /> : <ArrowUpRight size={16} />}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-ink-900 dark:text-ink-50">{u.who}</p>
+                          <p className={`text-xs ${u.days < 0 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-ink-400'}`}>
+                            {u.days < 0 ? `Atrasado há ${Math.abs(u.days)} dia${Math.abs(u.days) === 1 ? '' : 's'}` : u.days === 0 ? 'Vence hoje' : u.days === 1 ? 'Vence amanhã' : `Vence em ${u.days} dias`} · {formatDate(u.due)}
+                          </p>
+                        </div>
+                        <p className={`shrink-0 text-sm font-semibold ${u.kind === 'in' ? 'text-brand-600 dark:text-brand-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {formatCurrency(u.amount)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
 
               {insights.length > 0 && (
                 <Section title="O que chama atenção">
@@ -408,6 +499,12 @@ export default function Analytics() {
                   />
                 </Section>
               </div>
+
+              {methods.length > 0 && (
+                <Section title="Como você recebeu" subtitle="Recebimentos do período por forma de pagamento.">
+                  <Bars rows={methods.map((m, i) => ({ key: m.name, label: m.name, amount: m.value, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))} />
+                </Section>
+              )}
 
               {categoryData.length > 0 && (
                 <Section title="Categorias do período" subtitle="Valor das movimentações criadas no período.">
@@ -686,6 +783,76 @@ function LoansTab({ loans, pos }: { loans: ReturnType<typeof useLoans>['loans'];
         </div>
       </Section>
     </>
+  )
+}
+
+/** Cartão de abertura: a posição líquida de agora, com a divisão entre o que entra e o que sai. */
+function Hero({ pos }: { pos: ReturnType<typeof positionNow> }) {
+  const receivable = pos.openReceivable + pos.loanToReceive
+  const payable = pos.openPayable + pos.loanToPass
+  const net = Math.round((receivable - payable) * 100) / 100
+  const total = receivable + payable
+  const pct = total > 0 ? (receivable / total) * 100 : 50
+  const overdue = pos.overdueReceivable + pos.overduePayable
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink-900 via-ink-800 to-brand-900 p-5 sm:p-6 text-white shadow-lg">
+      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20 blur-3xl" />
+      <p className="text-[11px] font-medium uppercase tracking-wider text-white/60">Posição líquida agora</p>
+      <p className={`mt-1 text-3xl sm:text-4xl font-bold ${net < 0 ? 'text-red-300' : 'text-white'}`}>{formatCurrency(net)}</p>
+      <p className="mt-0.5 text-sm text-white/70">
+        {net > 0.009 ? 'é quanto ainda deve entrar, já descontando o que você deve' : net < -0.009 ? 'é quanto você ainda deve, já descontando o que te devem' : 'o que você tem a receber cobre o que deve'}
+      </p>
+      <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-red-400/70">
+        <div className="h-full rounded-full bg-brand-400 transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+        <div>
+          <p className="text-[11px] text-white/60">A receber</p>
+          <p className="font-semibold text-brand-300">{formatCurrency(receivable)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] text-white/60">A pagar</p>
+          <p className="font-semibold text-red-300">{formatCurrency(payable)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] text-white/60">Atrasado</p>
+          <p className={`font-semibold ${overdue > 0 ? 'text-amber-300' : 'text-white/80'}`}>{formatCurrency(overdue)}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Metric({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  hint?: string
+  tone?: 'good' | 'mid' | 'bad'
+}) {
+  const color =
+    tone === 'good'
+      ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400'
+      : tone === 'bad'
+        ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+        : tone === 'mid'
+          ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
+          : 'bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-300'
+  return (
+    <div className="rounded-2xl border border-ink-100 dark:border-ink-800 p-3.5">
+      <span className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${color}`}>
+        <Icon size={16} />
+      </span>
+      <p className="text-xs text-ink-400">{label}</p>
+      <p className="mt-0.5 truncate text-lg font-bold text-ink-900 dark:text-ink-50">{value}</p>
+      {hint && <p className="mt-0.5 text-[11px] leading-tight text-ink-400">{hint}</p>}
+    </div>
   )
 }
 

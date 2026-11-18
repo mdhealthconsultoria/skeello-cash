@@ -99,6 +99,8 @@ export default function People() {
         <div className="grid sm:grid-cols-2 gap-3">
           {people.map((person) => {
             const { receivable, payable } = balanceFor(person.id)
+            // só o saldo: o que passa de um lado ao outro. Quem te deve mais = verde, quem você deve mais = vermelho.
+            const net = Math.round((receivable - payable) * 100) / 100
             return (
               <div
                 key={person.id}
@@ -108,11 +110,15 @@ export default function People() {
                 <Avatar src={person.photo_url} name={person.name} size="lg" />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-ink-900 dark:text-ink-50 truncate">{person.name}</p>
-                  {receivable > 0 && (
-                    <p className="text-sm text-brand-600 dark:text-brand-400">Você tem a receber: {formatCurrency(receivable)}</p>
+                  {net > 0.009 && (
+                    <p className="text-sm font-medium text-brand-600 dark:text-brand-400">Você tem a receber: {formatCurrency(net)}</p>
                   )}
-                  {payable > 0 && <p className="text-sm text-red-600 dark:text-red-400">Você deve: {formatCurrency(payable)}</p>}
-                  {receivable === 0 && payable === 0 && <p className="text-sm text-ink-400">Sem pendências</p>}
+                  {net < -0.009 && (
+                    <p className="text-sm font-medium text-red-600 dark:text-red-400">Você deve: {formatCurrency(Math.abs(net))}</p>
+                  )}
+                  {Math.abs(net) <= 0.009 && (
+                    <p className="text-sm text-ink-400">{receivable > 0 || payable > 0 ? 'Quites: um cobre o outro' : 'Sem pendências'}</p>
+                  )}
                 </div>
               </div>
             )

@@ -23,6 +23,7 @@ export interface PaymentRow {
   amount: number
   payment_date: string
   type: 'receivable' | 'payable'
+  method?: string | null
 }
 
 export interface DateRange {
@@ -375,4 +376,96 @@ export function topPeople(debts: DebtRow[], type: 'receivable' | 'payable', limi
 export function delta(now: number, before: number): number | null {
   if (Math.abs(before) < 0.01) return null
   return ((now - before) / Math.abs(before)) * 100
+}
+
+export interface Health {
+  /** % do que já venceu que entrou */
+  collectionRate: number
+  /** % das dívidas quitadas que foram pagas até o vencimento (null se não há base) */
+  onTimeRate: number | null
+  /** dias, em média, entre criar e quitar uma dívida a receber (null se não há base) */
+  avgDaysToReceive: number | null
+  avgTicket: number
+  peopleOpen: number
+  biggest: PersonRow | null
+}
+
+export function healthFor(debts: DebtRow[], payments: PaymentRow[]): Health {
+  const lastPay = new Map<string, string>()
+  for (const p of payments) {
+    const cur = lastPay.get(p.debt_id)
+    if (!cur || p.payment_date > cur) lastPay.set(p.debt_id, p.payment_date)
+  }
+  let onTime = 0
+  let withDue = 0
+  let daysSum = 0
+  let daysN = 0
+  for (const d of debts) {
+    if (d.type !== 'receivable' || d.status === 'cancelled' || d.remaining > 0.009) continue
+    const last = lastPay.get(d.id)
+    if (!last) continue
+    if (d.due_date) {
+      withDue++
+      if (last <= d.due_date) onTime++
+    }
+    const days = Math.round((new Date(last + 'T00:00:00').getTime() - new Date(d.issue_date + 'T00:00:00').getTime()) / 86400000)
+    if (days >= 0) {
+      daysSum += days
+      daysN++
+    }
+  }
+  const rec = debts.filter((d) => d.type === 'receivable' && d.status !== 'cancelled')
+  const people = new Set(debts.filter((d) => d.remaining > 0.009).map((d) => d.person_id))
+  return {
+    collectionRate: collectionRateFor(debts),
+    onTimeRate: withDue > 0 ? (onTime / withDue) * 100 : null,
+    avgDaysToReceive: daysN > 0 ? daysSum / daysN : null,
+    avgTicket: rec.length ? round2(rec.reduce((s, d) => s + d.amount, 0) / rec.length) : 0,
+    peopleOpen: people.size,
+    biggest: topPeople(debts, 'receivable', 1)[0] ?? null,
+  }
+}
+
+export interface UpcomingItem {
+  key: string
+  who: string
+  amount: number
+  due: string
+  days: number
+  kind: 'in' | 'out'
+  loanId?: string
+  personId?: string
+}
+
+/** O que vence nos próximos dias (e o que já passou), do mais urgente ao mais distante. */
+export function upcomingItems(debts: DebtRow[], loans: LoanFull[], horizonDays = 30, limit = 8): UpcomingItem[] {
+  const today = new Date(todayStr() + 'T00:00:00').getTime()
+  const out: UpcomingItem[] = []
+  const days = (due: string) => Math.round((new Date(due + 'T00:00:00').getTime() - today) / 86400000)
+  for (const d of debts) {
+    if (d.remaining <= 0.009 || !d.due_date) continue
+    const n = days(d.due_date)
+    if (n > horizonDays) continue
+    out.push({ key: 'd' + d.id, who: d.person_name, amount: d.remaining, due: d.due_date, days: n, kind: d.type === 'receivable' ? 'in' : 'out', personId: d.person_id })
+  }
+  for (const l of loans) {
+    if (l.closed) continue
+    const sm = loanSummary(l)
+    if (sm.settled) continue
+    const n = days(l.due_date)
+    if (n > horizonDays) continue
+    out.push({ key: 'l' + l.id, who: l.borrower_name, amount: sm.remaining, due: l.due_date, days: n, kind: 'in', loanId: l.id })
+  }
+  return out.sort((a, b) => a.days - b.days).slice(0, limit)
+}
+
+/** Recebimentos do período por forma de pagamento. */
+export function byMethod(range: DateRange, payments: PaymentRow[]): { name: string; value: number }[] {
+  const map = new Map<string, number>()
+  for (const p of payments) {
+    if (p.type !== 'receivable' || !inRange(p.payment_date, range)) continue
+    const name = (p.method ?? '').trim() || 'Não informado'
+    map.set(name, (map.get(name) ?? 0) + p.amount)
+  }
+  return [...map.entries()].map(([name, value]) => ({ name, value: round2(value) })).sort((a, b) => b.value - a.value)
 }

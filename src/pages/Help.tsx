@@ -114,10 +114,16 @@ const TOPICS: Topic[] = [
           vencimento (0,5% ao dia por 30 dias = 15%). Para já vir preenchido, defina o seu juros ao dia padrão em Configurações &gt;
           Empréstimos.
         </p>
+        <p className="font-medium mb-1">Juros depois do vencimento:</p>
+        <p className="mb-3">
+          Em Configurações &gt; Empréstimos, defina o juros de atraso ao dia e a multa. Depois do vencimento o app mostra o valor atualizado
+          (dias de atraso x % ao dia, mais a multa) nas dívidas e nos empréstimos, e usa esse valor na mensagem de cobrança. Cada dívida ou
+          empréstimo pode ter o seu próprio % de atraso.
+        </p>
         <p className="font-medium mb-1">Calculadora:</p>
         <p className="mb-3">
-          Em Empréstimos, toque no ícone da calculadora. Ela mostra juros do prazo, total, juros por dia e quanto você ganha se a pessoa
-          renovar várias vezes. Não grava nada.
+          Em Empréstimos, toque no ícone da calculadora. Ela também abre pelo ícone no Extrato. Mostra juros do prazo, total, juros por dia, quanto você ganha se a pessoa
+          renovar várias vezes e o valor atualizado se atrasar. Não grava nada.
         </p>
         <p className="font-medium mb-1">Pagou só os juros? Renove:</p>
         <Steps
@@ -243,7 +249,7 @@ const TOPICS: Topic[] = [
           <strong>Extrato:</strong> todas as movimentações em ordem.
         </li>
         <li>
-          <strong>Análises:</strong> visão geral, mês a mês (escolha o mês ou um intervalo de datas), projeções dos próximos meses e análise dos empréstimos.
+          <strong>Análises:</strong> ficam junto do Extrato (aba Análises): posição líquida, saúde das cobranças, próximos vencimentos, visão geral, mês a mês (escolha o mês ou um intervalo de datas), projeções dos próximos meses e análise dos empréstimos.
         </li>
       </ul>
     ),

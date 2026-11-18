@@ -17,7 +17,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../hooks/useNotifications'
 import { Avatar } from '../components/ui/Avatar'
 
-type Item = { to: string; label: string; desc: string; icon: LucideIcon; badge?: number }
+type Item = { to: string; label: string; desc: string; icon: LucideIcon; badge?: number; state?: unknown }
 
 export default function More() {
   const navigate = useNavigate()
@@ -26,7 +26,7 @@ export default function More() {
 
   const items: Item[] = [
     { to: '/vencimentos', label: 'Vencimentos', desc: 'O que vence primeiro', icon: CalendarClock },
-    { to: '/analises', label: 'Análises', desc: 'Gráficos do seu dinheiro', icon: BarChart3 },
+    { to: '/movimentacoes', label: 'Análises', desc: 'Gráficos, projeções e mês a mês', icon: BarChart3, state: { tab: 'analytics' } },
     { to: '/comunidade', label: 'Amigos no app', desc: 'Siga quem usa o Skeello Cash', icon: Users },
     { to: '/contas-bancarias', label: 'Contas bancárias', desc: 'Conexões com seu banco', icon: Landmark },
     { to: '/notificacoes', label: 'Notificações', desc: 'Avisos e lembretes', icon: Bell, badge: unreadCount },
@@ -55,7 +55,7 @@ export default function More() {
         {items.map((it) => (
           <button
             key={it.to}
-            onClick={() => navigate(it.to)}
+            onClick={() => navigate(it.to, it.state ? { state: it.state } : undefined)}
             className="card p-3.5 flex items-center gap-3 text-left active:scale-[0.99] transition"
           >
             <span className="relative w-10 h-10 rounded-xl bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-200 flex items-center justify-center shrink-0">

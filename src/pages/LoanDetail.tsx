@@ -8,7 +8,8 @@ import { RenewLoanModal } from '../components/loans/RenewLoanModal'
 import { ValueInterestChart } from '../components/loans/ValueInterestChart'
 import { LoanPaymentModal } from '../components/loans/LoanPaymentModal'
 import { formatCurrency, formatDate } from '../lib/format'
-import { dueLabel, dueTone, formatCode, isRenewed, loanSummary } from '../lib/loans'
+import { dueLabel, dueTone, formatCode, isRenewed, lateInterest, loanSummary } from '../lib/loans'
+import { useInterestDefaults } from '../hooks/useInterestDefaults'
 import { Toggle } from '../components/ui/Toggle'
 
 export default function LoanDetail() {
@@ -30,8 +31,13 @@ export default function LoanDetail() {
     renewLoan,
   } = useLoans()
 
+  const interest = useInterestDefaults()
   const loan = useMemo(() => loans.find((l) => l.id === id) ?? null, [loans, id])
   const s = useMemo(() => (loan ? loanSummary(loan) : null), [loan])
+  const late = useMemo(
+    () => (loan && s && !s.settled && !loan.closed ? lateInterest(s.remaining, loan.due_date, loan.late_daily_rate ?? interest.lateRate, interest.lateFee) : null),
+    [loan, s, interest]
+  )
 
   const [editOpen, setEditOpen] = useState(false)
   const [payOpen, setPayOpen] = useState(false)
@@ -135,6 +141,17 @@ export default function LoanDetail() {
           <Line label="Já recebido" value={formatCurrency(s.paid)} />
           <Line label="Vencimento" value={formatDate(loan.due_date)} />
         </div>
+        {late && late.extra > 0 && (
+          <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 p-3 space-y-1 text-sm">
+            <p className="font-medium text-amber-700 dark:text-amber-400">
+              {late.days} dia{late.days === 1 ? '' : 's'} de atraso
+            </p>
+            {late.interest > 0 && <Line label="Juros de atraso" value={formatCurrency(late.interest)} />}
+            {late.fee > 0 && <Line label="Multa" value={formatCurrency(late.fee)} />}
+            <Line label="Valor atualizado hoje" value={formatCurrency(late.total)} strong />
+            <p className="text-xs text-ink-400">O saldo acima não muda sozinho. Registre o recebimento do valor atualizado.</p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {!s.settled && (
             <button onClick={() => setPayOpen(true)} className="btn-primary">

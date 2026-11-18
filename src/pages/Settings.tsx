@@ -31,6 +31,8 @@ export default function Settings() {
   const [editSrc, setEditSrc] = useState<File | string | null>(null)
   const [savingProfile, setSavingProfile] = useState(false)
   const [dailyRate, setDailyRate] = useState('')
+  const [lateRate, setLateRate] = useState('')
+  const [lateFee, setLateFee] = useState('')
   const [savingDaily, setSavingDaily] = useState(false)
 
   const [settings, setSettings] = useState<UserSettings | null>(null)
@@ -73,6 +75,10 @@ export default function Settings() {
         setSettings(data as UserSettings | null)
         const d = Number((data as UserSettings | null)?.default_daily_rate ?? 0)
         setDailyRate(d > 0 ? String(d).replace('.', ',') : '')
+        const lr = Number((data as UserSettings | null)?.default_late_rate ?? 0)
+        setLateRate(lr > 0 ? String(lr).replace('.', ',') : '')
+        const lf = Number((data as UserSettings | null)?.default_late_fee ?? 0)
+        setLateFee(lf > 0 ? String(lf).replace('.', ',') : '')
       })
   }, [user])
 
@@ -131,14 +137,22 @@ export default function Settings() {
 
   async function saveDailyRate() {
     if (!user) return
-    const n = Number(dailyRate.trim().replace(',', '.') || '0')
-    if (!Number.isFinite(n) || n < 0 || n > 100) return toast.error('Digite um % válido, entre 0 e 100.')
+    const parse = (v: string) => Number(v.trim().replace(',', '.') || '0')
+    const n = parse(dailyRate)
+    const late = parse(lateRate)
+    const fee = parse(lateFee)
+    for (const v of [n, late, fee]) {
+      if (!Number.isFinite(v) || v < 0 || v > 100) return toast.error('Digite um % válido, entre 0 e 100.')
+    }
     setSavingDaily(true)
-    const { error } = await supabase.from('user_settings').update({ default_daily_rate: n }).eq('user_id', user.id)
+    const { error } = await supabase
+      .from('user_settings')
+      .update({ default_daily_rate: n, default_late_rate: late, default_late_fee: fee })
+      .eq('user_id', user.id)
     setSavingDaily(false)
-    if (error) return toast.error('Não consegui salvar. Rode a migração 0012 no Supabase.')
-    setSettings((cur) => (cur ? { ...cur, default_daily_rate: n } : cur))
-    toast.success('Juros ao dia salvo!')
+    if (error) return toast.error('Não consegui salvar. Rode as migrações 0012 e 0014 no Supabase.')
+    setSettings((cur) => (cur ? { ...cur, default_daily_rate: n, default_late_rate: late, default_late_fee: fee } : cur))
+    toast.success('Juros salvos!')
   }
 
   async function updateSetting(patch: Partial<UserSettings>) {
@@ -310,20 +324,30 @@ export default function Settings() {
         <p className="text-xs text-ink-400 mb-4">
           O juros ao dia que você combina com mais frequência. Ele já vem preenchido ao criar um empréstimo e na calculadora. Em cada empréstimo você ainda pode trocar.
         </p>
-        <label className="label">Juros ao dia padrão (%)</label>
-        <div className="flex gap-2">
-          <input
-            inputMode="decimal"
-            value={dailyRate}
-            onChange={(e) => setDailyRate(e.target.value)}
-            className="input"
-            placeholder="Ex: 0,5"
-          />
-          <button type="button" onClick={saveDailyRate} disabled={savingDaily} className="btn-primary shrink-0 px-4">
-            {savingDaily ? '...' : 'Salvar'}
+        <div className="space-y-3">
+          <div>
+            <label className="label">Juros ao dia padrão (%)</label>
+            <input inputMode="decimal" value={dailyRate} onChange={(e) => setDailyRate(e.target.value)} className="input" placeholder="Ex: 0,5" />
+            <p className="text-xs text-ink-400 mt-1">Ex: 0,5% ao dia = 15% em 30 dias.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Juros de atraso ao dia (%)</label>
+              <input inputMode="decimal" value={lateRate} onChange={(e) => setLateRate(e.target.value)} className="input" placeholder="Ex: 0,033" />
+            </div>
+            <div>
+              <label className="label">Multa por atraso (%)</label>
+              <input inputMode="decimal" value={lateFee} onChange={(e) => setLateFee(e.target.value)} className="input" placeholder="Ex: 2" />
+            </div>
+          </div>
+          <p className="text-xs text-ink-400">
+            Depois do vencimento, o app calcula o juros de atraso (dias de atraso x % ao dia, sobre o que falta pagar) mais a multa única, e mostra o valor
+            atualizado. Cada dívida ou empréstimo pode ter o seu próprio % de atraso. Deixe vazio para não cobrar.
+          </p>
+          <button type="button" onClick={saveDailyRate} disabled={savingDaily} className="btn-primary w-full py-2.5">
+            {savingDaily ? 'Salvando...' : 'Salvar juros'}
           </button>
         </div>
-        <p className="text-xs text-ink-400 mt-2">Deixe vazio para não ter padrão. Ex: 0,5% ao dia = 15% em 30 dias.</p>
       </section>
 
       {/* Notificações */}

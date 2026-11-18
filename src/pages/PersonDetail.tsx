@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Plus, Pencil, Archive, Trash2, Phone, Mail, Receipt, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { sendCharge } from '../lib/charge'
+import { useInterestDefaults } from '../hooks/useInterestDefaults'
+import { lateInterest } from '../lib/loans'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { usePeople } from '../hooks/usePeople'
 import { useDebts } from '../hooks/useDebts'
@@ -18,6 +20,7 @@ export default function PersonDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { people, archivePerson, deletePerson } = usePeople(true)
+  const interest = useInterestDefaults()
   const { debts, loading, deleteDebt } = useDebts({ personId: id, includeArchived: true })
 
   const [editOpen, setEditOpen] = useState(false)
@@ -43,6 +46,8 @@ export default function PersonDetail() {
   const totalReceivable = receivables.reduce((s, d) => s + d.amount, 0)
   const receivedAmount = receivables.reduce((s, d) => s + d.totals.paid_amount, 0)
   const remainingReceivable = receivables.reduce((s, d) => s + d.totals.remaining_amount, 0)
+  const remainingPayable = payables.reduce((s, d) => s + d.totals.remaining_amount, 0)
+  const net = Math.round((remainingReceivable - remainingPayable) * 100) / 100
   const personId = person.id
 
   async function handleArchive() {
@@ -84,6 +89,26 @@ export default function PersonDetail() {
             <span className="flex items-center gap-1">
               <Mail size={13} /> {person.email}
             </span>
+          )}
+        </div>
+
+        <div
+          className={`w-full mt-5 rounded-2xl px-4 py-3 text-center ${
+            net > 0.009
+              ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400'
+              : net < -0.009
+                ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+                : 'bg-ink-50 dark:bg-ink-800 text-ink-500'
+          }`}
+        >
+          <p className="text-xs opacity-80">Saldo com {person.name.split(' ')[0]}</p>
+          <p className="text-xl font-bold">
+            {net > 0.009 ? `Você tem a receber ${formatCurrency(net)}` : net < -0.009 ? `Você deve ${formatCurrency(Math.abs(net))}` : 'Tudo quite'}
+          </p>
+          {remainingReceivable > 0 && remainingPayable > 0 && (
+            <p className="text-xs opacity-80 mt-0.5">
+              {formatCurrency(remainingReceivable)} a receber − {formatCurrency(remainingPayable)} a pagar
+            </p>
           )}
         </div>
 
@@ -136,8 +161,8 @@ export default function PersonDetail() {
         </div>
       </div>
 
-      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} onCharge={sendCharge} />
-      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} onCharge={sendCharge} />
+      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} onCharge={(d) => sendCharge(d, interest)} late={{ rate: interest.lateRate, fee: interest.lateFee }} />
+      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} onCharge={(d) => sendCharge(d, interest)} late={{ rate: interest.lateRate, fee: interest.lateFee }} />
 
       <AddPersonModal open={editOpen} onClose={() => setEditOpen(false)} editPerson={person} />
       <AddDebtModal
@@ -196,6 +221,7 @@ function DebtSection({
   onEdit,
   onDelete,
   onCharge,
+  late,
 }: {
   title: string
   items: DebtWithRelations[]
@@ -203,6 +229,7 @@ function DebtSection({
   onEdit: (d: DebtWithRelations) => void
   onDelete: (d: DebtWithRelations) => void
   onCharge: (d: DebtWithRelations) => void
+  late: { rate: number; fee: number }
 }) {
   if (items.length === 0) return null
   return (
@@ -241,6 +268,14 @@ function DebtSection({
             <div className="flex items-end justify-between mt-3">
               <div>
                 <p className="font-semibold text-ink-900 dark:text-ink-50">{formatCurrency(d.totals.remaining_amount)}</p>
+                {(() => {
+                  const li = d.status === 'paid' || d.status === 'cancelled' ? null : lateInterest(d.totals.remaining_amount, d.due_date, d.late_daily_rate ?? late.rate, late.fee)
+                  return li && li.extra > 0 ? (
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                      {li.days} dia{li.days === 1 ? '' : 's'} de atraso: + {formatCurrency(li.extra)} = {formatCurrency(li.total)}
+                    </p>
+                  ) : null
+                })()}
                 {d.totals.paid_amount > 0 && (
                   <p className="text-xs text-ink-400">
                     {formatCurrency(d.totals.paid_amount)} de {formatCurrency(d.amount)} pago

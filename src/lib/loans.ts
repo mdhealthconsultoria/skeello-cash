@@ -95,3 +95,28 @@ export function dueTone(days: number | null, settled: boolean): string {
   if (days !== null && days <= 3) return 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
   return 'text-ink-600 dark:text-ink-300 bg-ink-100 dark:bg-ink-800'
 }
+
+export interface LateInterest {
+  /** dias depois do vencimento (0 se não venceu) */
+  days: number
+  interest: number
+  fee: number
+  /** juros + multa */
+  extra: number
+  /** o que falta pagar + juros + multa */
+  total: number
+}
+
+/**
+ * Juros de atraso: o que falta pagar x % ao dia x dias de atraso (juros simples), mais a multa única.
+ * Só conta depois do vencimento e só se ainda falta pagar.
+ */
+export function lateInterest(remaining: number, dueDate: string | null, ratePerDay: number, feePercent: number): LateInterest {
+  const days = dueDate ? Math.max(0, -(daysUntil(dueDate) ?? 0)) : 0
+  if (days <= 0 || remaining <= 0.009 || (ratePerDay <= 0 && feePercent <= 0)) {
+    return { days, interest: 0, fee: 0, extra: 0, total: round2(Math.max(remaining, 0)) }
+  }
+  const interest = round2(remaining * (ratePerDay / 100) * days)
+  const fee = round2(remaining * (feePercent / 100))
+  return { days, interest, fee, extra: round2(interest + fee), total: round2(remaining + interest + fee) }
+}

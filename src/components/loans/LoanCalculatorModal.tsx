@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { formatCurrency } from '../../lib/format'
 import { parseMoney, round2 } from '../../lib/loans'
-import { useDefaultDailyRate } from '../../hooks/useDefaultDailyRate'
+import { useInterestDefaults } from '../../hooks/useInterestDefaults'
 
 type Unit = 'term' | 'day' | 'month'
 
@@ -14,12 +14,16 @@ const UNIT_LABEL: Record<Unit, string> = {
 
 /** Calculadora de empréstimo: qualquer pessoa pode usar, não grava nada. */
 export function LoanCalculatorModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const defaultDaily = useDefaultDailyRate()
+  const defaults = useInterestDefaults()
+  const defaultDaily = defaults.dailyRate
   const [amount, setAmount] = useState('1000')
   const [rate, setRate] = useState('')
   const [unit, setUnit] = useState<Unit>('term')
   const [days, setDays] = useState('30')
   const [renewals, setRenewals] = useState('0')
+  const [lateDays, setLateDays] = useState('0')
+  const [lateRate, setLateRate] = useState('')
+  const [lateFee, setLateFee] = useState('')
 
   useEffect(() => {
     if (!open) return
@@ -27,8 +31,10 @@ export function LoanCalculatorModal({ open, onClose }: { open: boolean; onClose:
       setUnit('day')
       setRate(String(defaultDaily).replace('.', ','))
     }
+    if (defaults.lateRate > 0) setLateRate(String(defaults.lateRate).replace('.', ','))
+    if (defaults.lateFee > 0) setLateFee(String(defaults.lateFee).replace('.', ','))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultDaily])
+  }, [open, defaultDaily, defaults.lateRate, defaults.lateFee])
 
   const r = useMemo(() => {
     const p = parseMoney(amount)
@@ -40,7 +46,15 @@ export function LoanCalculatorModal({ open, onClose }: { open: boolean; onClose:
     const perTerm = round2(p * (termRate / 100))
     const perDay = round2(perTerm / d)
     const total = round2(p + perTerm)
+    // atraso: juros simples ao dia sobre o total do vencimento + multa única
+    const ld = Math.max(0, Math.floor(parseMoney(lateDays)) || 0)
+    const lateInterestValue = round2(p + perTerm > 0 ? (p + perTerm) * (parseMoney(lateRate) / 100) * ld : 0)
+    const lateFeeValue = ld > 0 ? round2((p + perTerm) * (parseMoney(lateFee) / 100)) : 0
     return {
+      ld,
+      lateInterestValue,
+      lateFeeValue,
+      lateTotal: round2(p + perTerm + lateInterestValue + lateFeeValue),
       p,
       d,
       n,
@@ -54,10 +68,10 @@ export function LoanCalculatorModal({ open, onClose }: { open: boolean; onClose:
       renewedTotal: round2(p + perTerm * (n + 1)),
       renewedDays: d * (n + 1),
     }
-  }, [amount, rate, unit, days, renewals])
+  }, [amount, rate, unit, days, renewals, lateDays, lateRate, lateFee])
 
   return (
-    <Modal open={open} onClose={onClose} title="Calculadora de empréstimo">
+    <Modal open={open} onClose={onClose} title="Calculadora de juros">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -103,6 +117,33 @@ export function LoanCalculatorModal({ open, onClose }: { open: boolean; onClose:
               <Row label={`Juros somados em ${r.n + 1} prazos (${r.renewedDays} dias)`} value={formatCurrency(r.renewedInterest)} strong />
               <Row label="No fim ela ainda deve o valor" value={formatCurrency(r.p)} />
               <Row label="Total pago ao quitar" value={formatCurrency(r.renewedTotal)} />
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <p className="label !mb-0">E se atrasar o pagamento?</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="label">Dias de atraso</label>
+              <input inputMode="numeric" value={lateDays} onChange={(e) => setLateDays(e.target.value)} className="input" placeholder="0" />
+            </div>
+            <div>
+              <label className="label">Juros ao dia (%)</label>
+              <input inputMode="decimal" value={lateRate} onChange={(e) => setLateRate(e.target.value)} className="input" placeholder="0,033" />
+            </div>
+            <div>
+              <label className="label">Multa (%)</label>
+              <input inputMode="decimal" value={lateFee} onChange={(e) => setLateFee(e.target.value)} className="input" placeholder="2" />
+            </div>
+          </div>
+          {r.ld > 0 && (
+            <div className="rounded-2xl bg-amber-50 dark:bg-amber-500/10 p-4 space-y-1.5 text-sm">
+              <Row label={`Juros de atraso (${r.ld} dia${r.ld === 1 ? '' : 's'})`} value={formatCurrency(r.lateInterestValue)} />
+              <Row label="Multa" value={formatCurrency(r.lateFeeValue)} />
+              <div className="border-t border-amber-200 dark:border-amber-500/30 pt-1.5 mt-1.5">
+                <Row label="Valor atualizado" value={formatCurrency(r.lateTotal)} strong />
+              </div>
             </div>
           )}
         </div>

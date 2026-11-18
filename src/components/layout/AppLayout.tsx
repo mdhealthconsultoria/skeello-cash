@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell, Landmark, HelpCircle, Menu } from 'lucide-react'
+import { Home, Users, Wallet, Settings, Plus, LogOut, Search, Bell, Landmark, HelpCircle, Menu } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -12,9 +12,8 @@ import { QuickAddMenu } from './QuickAddMenu'
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Início', shortLabel: 'Início', icon: Home, end: true },
   { to: '/pessoas', label: 'Pessoas', shortLabel: 'Pessoas', icon: Users, end: false },
-  { to: '/movimentacoes', label: 'Movimentações', shortLabel: 'Extrato', icon: Wallet, end: false },
+  { to: '/movimentacoes', label: 'Extrato e análises', shortLabel: 'Extrato', icon: Wallet, end: false },
   { to: '/emprestimos', label: 'Empréstimos', shortLabel: 'Crédito', icon: Landmark, end: false },
-  { to: '/analises', label: 'Análises', shortLabel: 'Análises', icon: BarChart3, end: false },
   { to: '/configuracoes', label: 'Configurações', shortLabel: 'Ajustes', icon: Settings, end: false },
 ]
 

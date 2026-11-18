@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Plus, Search } from 'lucide-react'
+import { Calculator, Plus, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { sendCharge } from '../lib/charge'
+import { LoanCalculatorModal } from '../components/loans/LoanCalculatorModal'
+import { useInterestDefaults } from '../hooks/useInterestDefaults'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useDebts } from '../hooks/useDebts'
 import { DebtCard } from '../components/debts/DebtCard'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
+import Analytics from './Analytics'
 import { AddDebtModal } from '../components/debts/AddDebtModal'
 import { RegisterPaymentModal } from '../components/debts/RegisterPaymentModal'
 import type { DebtStatus, DebtType, DebtWithRelations } from '../types/database'
@@ -19,19 +22,26 @@ export default function Movimentacoes() {
   const location = useLocation()
   const navigate = useNavigate()
   const { debts, loading, deleteDebt } = useDebts({ includeArchived: false })
+  const interest = useInterestDefaults()
 
   const [tab, setTab] = useState<FilterTab>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [search, setSearch] = useState('')
   const [addOpen, setAddOpen] = useState(false)
+  const [view, setView] = useState<'extract' | 'analytics'>(() =>
+    (location.state as { tab?: string } | null)?.tab === 'analytics' ? 'analytics' : 'extract'
+  )
+  const [calcOpen, setCalcOpen] = useState(false)
   const [addType, setAddType] = useState<DebtType>('receivable')
   const [paymentDebt, setPaymentDebt] = useState<DebtWithRelations | null>(null)
   const [editingDebt, setEditingDebt] = useState<DebtWithRelations | null>(null)
   const [deletingDebt, setDeletingDebt] = useState<DebtWithRelations | null>(null)
 
   useEffect(() => {
-    const state = location.state as { openAdd?: DebtType } | null
+    const state = location.state as { openAdd?: DebtType; tab?: string } | null
+    if (state?.tab === 'analytics') setView('analytics')
     if (state?.openAdd) {
+      setView('extract')
       setAddType(state.openAdd)
       setAddOpen(true)
       window.history.replaceState({}, '')
@@ -59,19 +69,48 @@ export default function Movimentacoes() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-50">Movimentações</h1>
-          <p className="text-ink-400 text-sm">Tudo o que você tem a receber e a pagar</p>
+          <p className="text-ink-400 text-sm">Extrato e análises do seu dinheiro</p>
         </div>
-        <button
-          onClick={() => {
-            setAddType('receivable')
-            setAddOpen(true)
-          }}
-          className="btn-primary px-3 py-2"
-        >
-          <Plus size={16} />
-          <span className="hidden sm:inline">Adicionar</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setCalcOpen(true)} className="btn-secondary px-3 py-2" aria-label="Calculadora de juros" title="Calculadora de juros">
+            <Calculator size={16} />
+          </button>
+          <button
+            onClick={() => {
+              setAddType('receivable')
+              setAddOpen(true)
+            }}
+            className="btn-primary px-3 py-2"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Adicionar</span>
+          </button>
+        </div>
       </div>
+
+      <div className="flex gap-1 p-1 rounded-xl bg-ink-100 dark:bg-ink-800">
+        {(
+          [
+            { key: 'extract', label: 'Extrato' },
+            { key: 'analytics', label: 'Análises' },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setView(t.key)}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+              view === t.key ? 'bg-white dark:bg-ink-900 text-ink-900 dark:text-ink-50 shadow-sm' : 'text-ink-500 dark:text-ink-400'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'analytics' && <Analytics embedded />}
+
+      {view === 'extract' && (
+        <>
 
       <div className="relative">
         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
@@ -142,12 +181,16 @@ export default function Movimentacoes() {
               onRegisterPayment={() => setPaymentDebt(d)}
               onEdit={() => setEditingDebt(d)}
               onDelete={() => setDeletingDebt(d)}
-              onCharge={() => sendCharge(d)}
+              onCharge={() => sendCharge(d, interest)}
+              late={{ rate: interest.lateRate, fee: interest.lateFee }}
             />
           ))}
         </div>
       )}
+        </>
+      )}
 
+      <LoanCalculatorModal open={calcOpen} onClose={() => setCalcOpen(false)} />
       <AddDebtModal open={addOpen} onClose={() => setAddOpen(false)} defaultType={addType} />
       <AddDebtModal open={!!editingDebt} onClose={() => setEditingDebt(null)} editDebt={editingDebt} />
       <RegisterPaymentModal open={!!paymentDebt} onClose={() => setPaymentDebt(null)} debt={paymentDebt} />

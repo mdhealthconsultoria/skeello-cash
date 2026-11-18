@@ -15,6 +15,7 @@ export interface LoanInput {
   /** só vai ao banco quando o juros é ao dia (ou o empréstimo já usa esses campos) */
   daily_rate?: number | null
   term_rate?: number
+  late_daily_rate?: number | null
 }
 
 export interface FunderInput {

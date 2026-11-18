@@ -5,7 +5,7 @@ import { Modal } from '../ui/Modal'
 import { PartyPicker, cleanEmail, type PartyValue } from './PartyPicker'
 import { formatCurrency } from '../../lib/format'
 import { daysBetween, isRenewed, parseMoney, rateFromDaily, round2, withRate } from '../../lib/loans'
-import { useDefaultDailyRate } from '../../hooks/useDefaultDailyRate'
+import { useInterestDefaults } from '../../hooks/useInterestDefaults'
 import type { FunderInput, LoanInput } from '../../hooks/useLoans'
 import type { LoanFull } from '../../types/database'
 import { Toggle } from '../ui/Toggle'
@@ -61,7 +61,9 @@ export function LoanFormModal({
 }) {
   const [borrower, setBorrower] = useState<PartyValue>({ name: '', email: '', userId: null })
   const [principal, setPrincipal] = useState('')
-  const defaultDaily = useDefaultDailyRate()
+  const interestDefaults = useInterestDefaults()
+  const defaultDaily = interestDefaults.dailyRate
+  const [lateRate, setLateRate] = useState('')
   const [rate, setRate] = useState('')
   const [rateUnit, setRateUnit] = useState<RateUnit>('term')
   const [issueDate, setIssueDate] = useState(today())
@@ -85,6 +87,7 @@ export function LoanFormModal({
       setIssueDate(editLoan.issue_date)
       setDueDate(editLoan.due_date)
       setNotes(editLoan.notes ?? '')
+      setLateRate(editLoan.late_daily_rate != null ? num(editLoan.late_daily_rate) : '')
       setFunders(
         editLoan.funders.map((f) => ({
           key: newKey(),
@@ -108,6 +111,7 @@ export function LoanFormModal({
       setIssueDate(today())
       setDueDate('')
       setNotes('')
+      setLateRate('')
       setFunders([blankFunder(defaultDaily)])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -176,6 +180,7 @@ export function LoanFormModal({
             ? { daily_rate: null }
             : {}),
         ...(editLoan && editLoan.term_rate !== undefined && !loanRenewed ? { term_rate: calc.r } : {}),
+        ...(lateRate.trim() !== '' || editLoan?.late_daily_rate !== undefined ? { late_daily_rate: lateRate.trim() === '' ? null : parseMoney(lateRate) } : {}),
       },
       filled.map((f) => ({
         id: f.id,
@@ -312,6 +317,16 @@ export function LoanFormModal({
               <label className="label">Vencimento *</label>
               <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" />
             </div>
+          </div>
+          <div>
+            <label className="label">Juros de atraso (% ao dia, opcional)</label>
+            <input
+              inputMode="decimal"
+              value={lateRate}
+              onChange={(e) => setLateRate(e.target.value)}
+              className="input"
+              placeholder={interestDefaults.lateRate > 0 ? `Padrão: ${String(interestDefaults.lateRate).replace('.', ',')}%` : 'Vazio = sem juros de atraso'}
+            />
           </div>
         </section>
 

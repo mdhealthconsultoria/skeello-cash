@@ -25,6 +25,9 @@ export interface UserSettings {
   demo_seeded: boolean
   /** % ao dia que já vem preenchido ao criar um empréstimo (0 = sem padrão) */
   default_daily_rate?: number
+  /** juros de atraso ao dia (%) e multa única (%) padrão */
+  default_late_rate?: number
+  default_late_fee?: number
   updated_at: string
 }
 
@@ -53,6 +56,8 @@ export interface Person {
 }
 
 export interface Debt {
+  /** juros de atraso ao dia só desta dívida (null = usa o padrão) */
+  late_daily_rate?: number | null
   id: string
   user_id: string
   person_id: string
@@ -207,6 +212,8 @@ export interface Loan {
   closed: boolean
   share_code: string
   /** % ao dia combinado (null = juros fixo no prazo) */
+  /** juros de atraso ao dia só deste empréstimo (null = usa o padrão) */
+  late_daily_rate?: number | null
   daily_rate?: number | null
   /** % de um prazo só (o que se soma a cada renovação) */
   term_rate?: number | null
