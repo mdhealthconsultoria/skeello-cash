@@ -392,6 +392,7 @@ create table if not exists public.reminder_log (
 alter table public.notification_rules enable row level security;
 alter table public.reminder_log enable row level security;
 
+drop policy if exists "notification_rules_own_all" on public.notification_rules;
 create policy "notification_rules_own_all" on public.notification_rules
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 -- reminder_log: sem policies, só as funções security definer mexem
