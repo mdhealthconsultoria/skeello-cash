@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell, Landmark } from 'lucide-react'
+import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell, Landmark, HelpCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -82,6 +82,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </button>
 
         <button
+          onClick={() => navigate('/ajuda')}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition mb-1"
+        >
+          <HelpCircle size={18} />
+          Como usar o app
+        </button>
+
+        <button
           onClick={() => navigate('/configuracoes')}
           className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-ink-50 dark:hover:bg-ink-800 transition"
         >
@@ -109,6 +117,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span className="font-semibold text-ink-900 dark:text-ink-50 text-sm">Skeello Cash</span>
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/ajuda')} className="p-1.5 text-ink-400" aria-label="Como usar o app">
+              <HelpCircle size={19} />
+            </button>
             <button onClick={() => navigate('/busca')} className="p-1.5 text-ink-400" aria-label="Buscar">
               <Search size={19} />
             </button>

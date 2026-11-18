@@ -22,6 +22,7 @@ import BankConnections from './pages/BankConnections'
 import Community from './pages/Community'
 import Notifications from './pages/Notifications'
 import Admin from './pages/Admin'
+import Help from './pages/Help'
 import Loans from './pages/Loans'
 import LoanDetail from './pages/LoanDetail'
 import { Navigate } from 'react-router-dom'
@@ -163,6 +164,15 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/ajuda"
+              element={
+                <ProtectedRoute>
+                  <Help />
                 </ProtectedRoute>
               }
             />
