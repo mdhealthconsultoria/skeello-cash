@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell, Landmark, HelpCircle } from 'lucide-react'
+import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell, Landmark, HelpCircle, Menu } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -15,6 +15,14 @@ const NAV_ITEMS = [
   { to: '/emprestimos', label: 'Empréstimos', shortLabel: 'Crédito', icon: Landmark, end: false },
   { to: '/analises', label: 'Análises', shortLabel: 'Análises', icon: BarChart3, end: false },
   { to: '/configuracoes', label: 'Configurações', shortLabel: 'Ajustes', icon: Settings, end: false },
+]
+
+const MOBILE_NAV = [
+  NAV_ITEMS[0],
+  NAV_ITEMS[1],
+  NAV_ITEMS[2],
+  NAV_ITEMS[3],
+  { to: '/mais', label: 'Mais', shortLabel: 'Mais', icon: Menu, end: false },
 ]
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -142,7 +150,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-ink-950/95 backdrop-blur border-t border-ink-100 dark:border-ink-800 flex items-stretch"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          {NAV_ITEMS.slice(0, 3).map((item) => (
+          {MOBILE_NAV.slice(0, 2).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -168,7 +176,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
 
-          {NAV_ITEMS.slice(3).map((item) => (
+          {MOBILE_NAV.slice(2).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

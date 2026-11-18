@@ -4,6 +4,7 @@ import { useNotifications } from '../hooks/useNotifications'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
 import { formatDate } from '../lib/format'
+import { fixMojibake } from '../lib/text'
 import type { Notification } from '../types/database'
 
 const ICONS: Record<Notification['type'], typeof Bell> = {
@@ -69,7 +70,7 @@ export default function Notifications() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm ${!n.read ? 'font-medium text-ink-900 dark:text-ink-50' : 'text-ink-500 dark:text-ink-400'}`}>
-                    {n.message}
+                    {fixMojibake(n.message)}
                   </p>
                   <p className="text-xs text-ink-400 mt-0.5">{formatDate(n.created_at, 'long')}</p>
                 </div>

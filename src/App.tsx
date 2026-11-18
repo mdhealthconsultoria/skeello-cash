@@ -23,6 +23,7 @@ import Community from './pages/Community'
 import Notifications from './pages/Notifications'
 import Admin from './pages/Admin'
 import Help from './pages/Help'
+import More from './pages/More'
 import Loans from './pages/Loans'
 import LoanDetail from './pages/LoanDetail'
 import { Navigate } from 'react-router-dom'
@@ -168,6 +169,14 @@ export default function App() {
               }
             />
 
+            <Route
+              path="/mais"
+              element={
+                <ProtectedRoute>
+                  <More />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/ajuda"
               element={
