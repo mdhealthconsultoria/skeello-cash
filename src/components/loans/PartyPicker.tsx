@@ -30,7 +30,7 @@ export function PartyPicker({
     const q = value.name.trim().toLowerCase()
     return following
       .filter((u) => !q || u.name.toLowerCase().includes(q) || u.username.toLowerCase().startsWith(q.replace(/^@/, '')))
-      .slice(0, 5)
+      .slice(0, 8)
   }, [following, value.name])
 
   return (
