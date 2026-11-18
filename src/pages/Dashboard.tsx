@@ -51,7 +51,7 @@ export default function Dashboard() {
             <StatCard icon={Scale} label="Saldo líquido" value={summary.netBalance} tone={summary.netBalance >= 0 ? 'brand' : 'red'} />
           </div>
 
-          <OverdueCard scope="all" />
+          <OverdueCard scope="loans" />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="card p-4">

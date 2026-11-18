@@ -350,7 +350,7 @@ export default function Analytics({ embedded = false }: { embedded?: boolean }) 
             <>
               <Hero pos={pos} />
 
-              <OverdueCard scope="all" />
+              <OverdueCard scope="loans" />
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <Kpi label="Recebido" value={flows.received} tone="text-brand-600 dark:text-brand-400" change={delta(flows.received, prevFlows.received)} />
