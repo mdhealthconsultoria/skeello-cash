@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowDownCircle, ArrowUpCircle, Scale, AlertTriangle, Sparkles } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Scale, Sparkles } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useDashboard } from '../hooks/useDashboard'
 import { formatCurrency } from '../lib/format'
@@ -7,6 +7,7 @@ import { DebtCard } from '../components/debts/DebtCard'
 import { DebtInvites } from '../components/debts/DebtInvites'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
+import { OverdueCard } from '../components/overdue/OverdueCard'
 import { AnimatedNumber } from '../components/ui/AnimatedNumber'
 
 export default function Dashboard() {
@@ -37,19 +38,20 @@ export default function Dashboard() {
       <DebtInvites />
 
       {loading || !summary ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="card h-24 animate-pulse" />
           ))}
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <StatCard icon={ArrowDownCircle} label="A receber" value={summary.totalReceivable} tone="brand" />
             <StatCard icon={ArrowUpCircle} label="A pagar" value={summary.totalPayable} tone="red" />
             <StatCard icon={Scale} label="Saldo líquido" value={summary.netBalance} tone={summary.netBalance >= 0 ? 'brand' : 'red'} />
-            <StatCard icon={AlertTriangle} label="Em atraso" value={summary.overdueTotal} tone="amber" />
           </div>
+
+          <OverdueCard scope="all" />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="card p-4">

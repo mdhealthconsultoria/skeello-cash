@@ -4,6 +4,7 @@ import { Plus, ChevronRight, KeyRound, Calculator } from 'lucide-react'
 import { useLoans, useParticipations } from '../hooks/useLoans'
 import { LoanFormModal } from '../components/loans/LoanFormModal'
 import { LoanCalculatorModal } from '../components/loans/LoanCalculatorModal'
+import { OverdueCard } from '../components/overdue/OverdueCard'
 import { JoinLoanModal } from '../components/loans/JoinLoanModal'
 import { BorrowingCard, FundingCard } from '../components/loans/ParticipationCard'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -78,6 +79,7 @@ export default function Loans() {
       {tab === 'mine' && (
         <>
           <p className="text-sm text-ink-500 dark:text-ink-400">Pessoas que pegaram dinheiro com você e vão te pagar com juros.</p>
+          <OverdueCard scope="loans" />
           <div className="grid grid-cols-3 gap-2.5">
             <Stat label="A receber" value={totals.toReceive} />
             <Stat label="A repassar" value={totals.toPass} />
