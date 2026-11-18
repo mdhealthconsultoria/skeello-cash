@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useDebts } from '../hooks/useDebts'
 import { DebtCard } from '../components/debts/DebtCard'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -15,7 +17,7 @@ type StatusFilter = 'all' | DebtStatus
 export default function Movimentacoes() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { debts, loading } = useDebts({ includeArchived: false })
+  const { debts, loading, deleteDebt } = useDebts({ includeArchived: false })
 
   const [tab, setTab] = useState<FilterTab>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -24,6 +26,7 @@ export default function Movimentacoes() {
   const [addType, setAddType] = useState<DebtType>('receivable')
   const [paymentDebt, setPaymentDebt] = useState<DebtWithRelations | null>(null)
   const [editingDebt, setEditingDebt] = useState<DebtWithRelations | null>(null)
+  const [deletingDebt, setDeletingDebt] = useState<DebtWithRelations | null>(null)
 
   useEffect(() => {
     const state = location.state as { openAdd?: DebtType } | null
@@ -137,6 +140,7 @@ export default function Movimentacoes() {
               onClick={() => navigate(`/pessoas/${d.person_id}`)}
               onRegisterPayment={() => setPaymentDebt(d)}
               onEdit={() => setEditingDebt(d)}
+              onDelete={() => setDeletingDebt(d)}
             />
           ))}
         </div>
@@ -145,6 +149,20 @@ export default function Movimentacoes() {
       <AddDebtModal open={addOpen} onClose={() => setAddOpen(false)} defaultType={addType} />
       <AddDebtModal open={!!editingDebt} onClose={() => setEditingDebt(null)} editDebt={editingDebt} />
       <RegisterPaymentModal open={!!paymentDebt} onClose={() => setPaymentDebt(null)} debt={paymentDebt} />
+      <ConfirmDialog
+        open={!!deletingDebt}
+        title="Apagar esta dívida?"
+        message={`${deletingDebt?.person.name ?? ''}${deletingDebt?.description ? ' • ' + deletingDebt.description : ''}. Os pagamentos dela também serão apagados. Não dá para desfazer.`}
+        confirmLabel="Apagar dívida"
+        onClose={() => setDeletingDebt(null)}
+        onConfirm={async () => {
+          if (!deletingDebt) return
+          const { error } = await deleteDebt(deletingDebt.id)
+          if (error) toast.error(error)
+          else toast.success('Dívida apagada.')
+          setDeletingDebt(null)
+        }}
+      />
     </div>
   )
 }

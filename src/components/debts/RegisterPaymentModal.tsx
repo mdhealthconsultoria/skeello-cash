@@ -31,7 +31,7 @@ export function RegisterPaymentModal({
     e.preventDefault()
     if (!debt) return
     const parsed = Number(amount.replace(',', '.'))
-    if (!parsed || parsed <= 0) {
+    if (amount.trim() === '' || Number.isNaN(parsed) || parsed < 0) {
       toast.error('Informe um valor válido.')
       return
     }

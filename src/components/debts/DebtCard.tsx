@@ -1,4 +1,4 @@
-import { ArrowRight, Link2, Clock, Pencil } from 'lucide-react'
+import { ArrowRight, Link2, Clock, Pencil, Trash2 } from 'lucide-react'
 import { Avatar } from '../ui/Avatar'
 import { StatusBadge } from '../ui/StatusBadge'
 import { formatCurrency, formatDate, daysUntil } from '../../lib/format'
@@ -9,11 +9,13 @@ export function DebtCard({
   onClick,
   onRegisterPayment,
   onEdit,
+  onDelete,
 }: {
   debt: DebtWithRelations
   onClick?: () => void
   onRegisterPayment?: () => void
   onEdit?: () => void
+  onDelete?: () => void
 }) {
   const remaining = debt.totals.remaining_amount
   const isReceivable = debt.type === 'receivable'
@@ -62,6 +64,19 @@ export function DebtCard({
                   title="Editar"
                 >
                   <Pencil size={14} />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete()
+                  }}
+                  className="p-1 text-ink-400 hover:text-red-600 transition"
+                  title="Apagar dívida"
+                  aria-label="Apagar dívida"
+                >
+                  <Trash2 size={14} />
                 </button>
               )}
             </div>

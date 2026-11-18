@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Plus, Pencil, Archive, Trash2, Phone, Mail, Receipt } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { usePeople } from '../hooks/usePeople'
 import { useDebts } from '../hooks/useDebts'
 import { Avatar } from '../components/ui/Avatar'
@@ -16,13 +17,14 @@ export default function PersonDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { people, archivePerson, deletePerson } = usePeople(true)
-  const { debts, loading } = useDebts({ personId: id, includeArchived: true })
+  const { debts, loading, deleteDebt } = useDebts({ personId: id, includeArchived: true })
 
   const [editOpen, setEditOpen] = useState(false)
   const [addDebtOpen, setAddDebtOpen] = useState(false)
   const [addDebtType, setAddDebtType] = useState<'receivable' | 'payable'>('receivable')
   const [editingDebt, setEditingDebt] = useState<DebtWithRelations | null>(null)
   const [paymentDebt, setPaymentDebt] = useState<DebtWithRelations | null>(null)
+  const [deletingDebt, setDeletingDebt] = useState<DebtWithRelations | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const person = people.find((p) => p.id === id)
@@ -133,8 +135,8 @@ export default function PersonDetail() {
         </div>
       </div>
 
-      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} onEdit={setEditingDebt} />
-      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} onEdit={setEditingDebt} />
+      <DebtSection title="A receber" items={receivables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} />
+      <DebtSection title="A pagar" items={payables} onPay={setPaymentDebt} onEdit={setEditingDebt} onDelete={setDeletingDebt} />
 
       <AddPersonModal open={editOpen} onClose={() => setEditOpen(false)} editPerson={person} />
       <AddDebtModal
@@ -145,6 +147,20 @@ export default function PersonDetail() {
       />
       <AddDebtModal open={!!editingDebt} onClose={() => setEditingDebt(null)} editDebt={editingDebt} />
       <RegisterPaymentModal open={!!paymentDebt} onClose={() => setPaymentDebt(null)} debt={paymentDebt} />
+      <ConfirmDialog
+        open={!!deletingDebt}
+        title="Apagar esta dívida?"
+        message={`${deletingDebt?.person.name ?? ''}${deletingDebt?.description ? ' • ' + deletingDebt.description : ''}. Os pagamentos dela também serão apagados. Não dá para desfazer.`}
+        confirmLabel="Apagar dívida"
+        onClose={() => setDeletingDebt(null)}
+        onConfirm={async () => {
+          if (!deletingDebt) return
+          const { error } = await deleteDebt(deletingDebt.id)
+          if (error) toast.error(error)
+          else toast.success('Dívida apagada.')
+          setDeletingDebt(null)
+        }}
+      />
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
@@ -177,11 +193,13 @@ function DebtSection({
   items,
   onPay,
   onEdit,
+  onDelete,
 }: {
   title: string
   items: DebtWithRelations[]
   onPay: (d: DebtWithRelations) => void
   onEdit: (d: DebtWithRelations) => void
+  onDelete: (d: DebtWithRelations) => void
 }) {
   if (items.length === 0) return null
   return (
@@ -206,6 +224,14 @@ function DebtSection({
                   title="Editar"
                 >
                   <Pencil size={14} />
+                </button>
+                <button
+                  onClick={() => onDelete(d)}
+                  className="p-1 text-ink-400 hover:text-red-600 transition"
+                  title="Apagar dívida"
+                  aria-label="Apagar dívida"
+                >
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

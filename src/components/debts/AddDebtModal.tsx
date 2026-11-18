@@ -66,7 +66,7 @@ export function AddDebtModal({
       return
     }
     const parsedAmount = Number(amount.replace(',', '.'))
-    if (!parsedAmount || parsedAmount <= 0) {
+    if (amount.trim() === '' || Number.isNaN(parsedAmount) || parsedAmount < 0) {
       toast.error('Informe um valor válido.')
       return
     }
