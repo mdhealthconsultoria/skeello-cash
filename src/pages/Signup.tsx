@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { Avatar } from '../components/ui/Avatar'
+import { PhotoEditor } from '../components/ui/PhotoEditor'
 
 export default function Signup() {
   const { signUp } = useAuth()
@@ -15,14 +16,21 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [editSrc, setEditSrc] = useState<File | string | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
+    setEditSrc(file)
+  }
+
+  function onPhotoEdited(file: File) {
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
+    setEditSrc(null)
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -79,7 +87,9 @@ export default function Signup() {
           <p className="text-sm text-ink-400 mt-1">Comece a organizar seu dinheiro</p>
         </div>
 
-        <div className="flex justify-center mb-5">
+        <PhotoEditor source={editSrc} onCancel={() => setEditSrc(null)} onDone={onPhotoEdited} />
+        <div className="mb-5">
+        <div className="flex justify-center">
           <label className="relative cursor-pointer group">
             <Avatar src={photoPreview} name={name || '?'} size="xl" />
             <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-ink-900 dark:bg-white text-white dark:text-ink-900 flex items-center justify-center border-2 border-white dark:border-ink-950">
@@ -87,6 +97,12 @@ export default function Signup() {
             </span>
             <input type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
           </label>
+        </div>
+        {(photoFile || photoPreview) && (
+          <button type="button" onClick={() => setEditSrc(photoFile ?? photoPreview)} className="block mx-auto mt-2 text-xs font-medium text-ink-500 hover:text-ink-900 dark:hover:text-white">
+            Ajustar foto (tamanho, posição, brilho)
+          </button>
+        )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useDebts } from '../hooks/useDebts'
 import { supabase } from '../lib/supabase'
 import { Avatar } from '../components/ui/Avatar'
+import { PhotoEditor } from '../components/ui/PhotoEditor'
 import { exportDebtsToCsv, exportDebtsToPdf } from '../lib/export'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { InstallAppButton } from '../components/ui/InstallAppButton'
@@ -27,6 +28,7 @@ export default function Settings() {
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle')
   const [photoPreview, setPhotoPreview] = useState<string | null>(profile?.avatar_url ?? null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [editSrc, setEditSrc] = useState<File | string | null>(null)
   const [savingProfile, setSavingProfile] = useState(false)
 
   const [settings, setSettings] = useState<UserSettings | null>(null)
@@ -70,9 +72,15 @@ export default function Settings() {
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
+    setEditSrc(file)
+  }
+
+  function onPhotoEdited(file: File) {
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
+    setEditSrc(null)
   }
 
   async function saveProfile(e: FormEvent) {
@@ -98,7 +106,7 @@ export default function Settings() {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, photoFile, { upsert: true })
       if (!uploadError) {
         const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-        avatarUrl = data.publicUrl
+        avatarUrl = `${data.publicUrl}?v=${Date.now()}`
       }
     }
 
@@ -152,6 +160,7 @@ export default function Settings() {
       {/* Perfil */}
       <section className="card p-5">
         <h2 className="font-semibold text-ink-900 dark:text-ink-50 mb-4">Perfil</h2>
+        <PhotoEditor source={editSrc} onCancel={() => setEditSrc(null)} onDone={onPhotoEdited} />
         <form onSubmit={saveProfile} className="space-y-4">
           <div className="flex justify-center">
             <label className="relative cursor-pointer">
@@ -162,6 +171,11 @@ export default function Settings() {
               <input type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
             </label>
           </div>
+          {(photoFile || photoPreview) && (
+            <button type="button" onClick={() => setEditSrc(photoFile ?? photoPreview)} className="mt-2 text-xs font-medium text-ink-500 hover:text-ink-900 dark:hover:text-white">
+              Ajustar foto (tamanho, posição, brilho)
+            </button>
+          )}
           <div>
             <label className="label">Nome</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className="input" />

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import toast from 'react-hot-toast'
 import { Camera, Link2, X, CheckCircle2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
+import { PhotoEditor } from '../ui/PhotoEditor'
 import { Avatar } from '../ui/Avatar'
 import { usePeople } from '../../hooks/usePeople'
 import { useFollowing } from '../../hooks/useFollowing'
@@ -33,6 +34,7 @@ export function AddPersonModal({
   const [email, setEmail] = useState(editPerson?.email ?? '')
   const [notes, setNotes] = useState(editPerson?.notes ?? '')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [editSrc, setEditSrc] = useState<File | string | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(editPerson?.photo_url ?? presetUser?.avatar_url ?? null)
   const [loading, setLoading] = useState(false)
 
@@ -56,9 +58,15 @@ export function AddPersonModal({
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
+    setEditSrc(file)
+  }
+
+  function onPhotoEdited(file: File) {
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
+    setEditSrc(null)
   }
 
   function selectUser(found: FoundUser) {
@@ -90,7 +98,7 @@ export function AddPersonModal({
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, photoFile, { upsert: true })
       if (!uploadError) {
         const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-        photoUrl = data.publicUrl
+        photoUrl = `${data.publicUrl}?v=${Date.now()}`
       }
     }
 
@@ -143,7 +151,9 @@ export function AddPersonModal({
 
   return (
     <Modal open={open} onClose={onClose} title={editPerson ? 'Editar pessoa' : 'Nova pessoa'}>
+      <PhotoEditor source={editSrc} onCancel={() => setEditSrc(null)} onDone={onPhotoEdited} />
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
         <div className="flex justify-center">
           <label className="relative cursor-pointer">
             <Avatar src={photoPreview} name={name || '?'} size="xl" />
@@ -152,6 +162,12 @@ export function AddPersonModal({
             </span>
             <input type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
           </label>
+        </div>
+        {(photoFile || photoPreview) && (
+          <button type="button" onClick={() => setEditSrc(photoFile ?? photoPreview)} className="block mx-auto mt-2 text-xs font-medium text-ink-500 hover:text-ink-900 dark:hover:text-white">
+            Ajustar foto (tamanho, posição, brilho)
+          </button>
+        )}
         </div>
 
         <div className="relative">
