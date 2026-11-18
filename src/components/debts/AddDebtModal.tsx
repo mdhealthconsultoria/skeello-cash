@@ -28,7 +28,7 @@ export function AddDebtModal({
   const { profile } = useAuth()
   const { people } = usePeople()
   const { categories } = useCategories()
-  const { createDebt, updateDebt } = useDebts()
+  const { debts, createDebt, updateDebt } = useDebts()
 
   const [type, setType] = useState<DebtType>(editDebt?.type ?? defaultType)
   const [personId, setPersonId] = useState(editDebt?.person_id ?? defaultPersonId ?? '')
@@ -57,6 +57,22 @@ export function AddDebtModal({
 
   const selectedPerson = useMemo(() => people.find((p) => p.id === personId), [people, personId])
   const isShared = Boolean(selectedPerson?.linked_user_id)
+
+  // Conta na hora: o que já está em aberto com essa pessoa + o valor que está sendo digitado.
+  // Só conta o que falta pagar (pagamentos já feitos saem da conta).
+  const preview = useMemo(() => {
+    if (!personId) return null
+    const raw = amount.trim().replace(',', '.')
+    const value = raw === '' ? 0 : Number(raw)
+    if (Number.isNaN(value) || value < 0) return null
+    const open = debts.filter((d) => d.person_id === personId && d.id !== editDebt?.id && d.status !== 'cancelled')
+    const receivable = open.filter((d) => d.type === 'receivable').reduce((s, d) => s + d.totals.remaining_amount, 0)
+    const payable = open.filter((d) => d.type === 'payable').reduce((s, d) => s + d.totals.remaining_amount, 0)
+    const afterReceivable = receivable + (type === 'receivable' ? value : 0)
+    const afterPayable = payable + (type === 'payable' ? value : 0)
+    const parts = Math.max(1, Math.floor(installments) || 1)
+    return { value, receivable, payable, afterReceivable, afterPayable, net: afterReceivable - afterPayable, parts, perPart: value / parts }
+  }, [personId, amount, type, debts, editDebt?.id, installments])
   const isSharedDebt = Boolean(editDebt && editDebt.share_status !== 'none')
 
   async function handleSubmit(e: FormEvent) {
@@ -244,6 +260,41 @@ export function AddDebtModal({
             />
           </div>
         </div>
+
+        {preview && (
+          <div className="rounded-xl bg-ink-50 dark:bg-ink-800 p-3.5 text-sm space-y-1.5">
+            <p className="text-xs font-medium text-ink-500 dark:text-ink-400">
+              Conta com {selectedPerson?.name ?? 'esta pessoa'} (só o que falta pagar)
+            </p>
+            <div className="flex justify-between text-ink-600 dark:text-ink-300">
+              <span>A receber</span>
+              <span>
+                {preview.receivable !== preview.afterReceivable && (
+                  <span className="text-ink-400 mr-1.5">{formatCurrency(preview.receivable)} →</span>
+                )}
+                <span className="font-medium text-brand-600 dark:text-brand-400">{formatCurrency(preview.afterReceivable)}</span>
+              </span>
+            </div>
+            <div className="flex justify-between text-ink-600 dark:text-ink-300">
+              <span>A pagar</span>
+              <span>
+                {preview.payable !== preview.afterPayable && (
+                  <span className="text-ink-400 mr-1.5">{formatCurrency(preview.payable)} →</span>
+                )}
+                <span className="font-medium text-red-600 dark:text-red-400">{formatCurrency(preview.afterPayable)}</span>
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-ink-200 dark:border-ink-700 pt-1.5 font-medium text-ink-900 dark:text-ink-50">
+              <span>{preview.net >= 0 ? 'Ele te deve no total' : 'Você deve no total'}</span>
+              <span>{formatCurrency(Math.abs(preview.net))}</span>
+            </div>
+            {preview.parts > 1 && (
+              <p className="text-xs text-ink-400 pt-0.5">
+                Esta dívida em {preview.parts} parcelas: {preview.parts}x de {formatCurrency(preview.perPart)}
+              </p>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="label">Forma combinada</label>
