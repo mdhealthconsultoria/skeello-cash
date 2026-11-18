@@ -104,6 +104,8 @@ export interface Notification {
     | 'contact_added'
     | 'loan_shared'
     | 'loan_due'
+    | 'loan_joined'
+    | 'reminder'
   message: string
   read: boolean
   created_at: string
@@ -142,6 +144,49 @@ export interface AdminUserRow {
   created_at: string
   total_receivable: number
   total_payable: number
+  loans_count: number
+  loans_total: number
+  participations_count: number
+  people_count: number
+}
+
+export interface AdminLoan extends Loan {
+  owner_name: string | null
+  borrower_account: string | null
+  total: number
+  paid: number
+  funders: (LoanFunder & { account_name: string | null; paid: number })[]
+  payments: LoanPayment[]
+}
+
+export interface ReminderRule {
+  id: string
+  user_id: string
+  kind: 'receive' | 'pay'
+  days_before: number
+  enabled: boolean
+  created_at: string
+}
+
+export interface AdminUserDetail {
+  profile: Profile
+  settings: UserSettings | null
+  push_enabled: boolean
+  rules: ReminderRule[]
+  people: { id: string; name: string; phone: string | null; email: string | null; archived: boolean; following: boolean }[]
+  debts: {
+    id: string
+    type: DebtType
+    person: string
+    amount: number
+    paid: number
+    remaining: number
+    due_date: string | null
+    status: DebtStatus
+    description: string | null
+  }[]
+  loans_owned: AdminLoan[]
+  loans_joined: AdminLoan[]
 }
 
 // ===== Empréstimos a juros =====
@@ -158,6 +203,7 @@ export interface Loan {
   due_date: string
   notes: string | null
   closed: boolean
+  share_code: string
   created_at: string
   updated_at: string
 }
@@ -215,8 +261,6 @@ export interface Borrowing {
   id: string
   due_date: string
   issue_date: string
-  principal: number
-  borrower_rate: number
   total: number
   paid: number
   owner_name: string | null
@@ -237,8 +281,5 @@ export interface Funding {
   closed: boolean
   borrower_name: string | null
   can_see_borrower: boolean
-  can_see_payments: boolean
-  borrower_total: number | null
-  borrower_paid: number | null
   payments: ParticipationPayment[]
 }

@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Pencil, Trash2, Plus, BadgeCheck, Mail, CheckCircle2, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Plus, BadgeCheck, Mail, CheckCircle2, RotateCcw, Copy, RefreshCw, KeyRound, UserMinus } from 'lucide-react'
 import { useLoans } from '../hooks/useLoans'
 import { LoanFormModal } from '../components/loans/LoanFormModal'
 import { LoanPaymentModal } from '../components/loans/LoanPaymentModal'
 import { formatCurrency, formatDate } from '../lib/format'
-import { dueLabel, dueTone, loanSummary, REMINDER_DAYS } from '../lib/loans'
+import { dueLabel, dueTone, formatCode, loanSummary } from '../lib/loans'
 
 export default function LoanDetail() {
   const { id } = useParams()
@@ -22,6 +22,8 @@ export default function LoanDetail() {
     addFunderPayment,
     deleteFunderPayment,
     updateFunderAccess,
+    regenerateCode,
+    releaseAccess,
   } = useLoans()
 
   const loan = useMemo(() => loans.find((l) => l.id === id) ?? null, [loans, id])
@@ -52,6 +54,31 @@ export default function LoanDetail() {
     if (error) return toast.error(error)
     toast.success('Empréstimo excluído.')
     navigate('/emprestimos')
+  }
+
+  async function copyCode() {
+    if (!loan) return
+    const text = `Código do empréstimo no Skeello Cash: ${formatCode(loan.share_code)}`
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('Código copiado!')
+    } catch {
+      toast.error('Não consegui copiar. Selecione o código e copie.')
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!loan) return
+    if (!window.confirm('Gerar um código novo? O código antigo deixa de funcionar (quem já entrou continua com acesso).')) return
+    const { error } = await regenerateCode(loan.id)
+    if (error) toast.error(error)
+    else toast.success('Código novo gerado.')
+  }
+
+  async function handleRelease(target: { loanId: string } | { funderId: string }, who: string) {
+    if (!window.confirm(`Remover o acesso de ${who}? A vaga volta a ficar livre pro código.`)) return
+    const { error } = await releaseAccess(target)
+    if (error) toast.error(error)
   }
 
   async function handleDeletePayment(paymentId: string, funder = false) {
@@ -128,17 +155,49 @@ export default function LoanDetail() {
           </button>
         </div>
         {loan.borrower_user_id ? (
-          <p className="flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-400">
-            <BadgeCheck size={14} /> {loan.borrower_name} vê esse empréstimo na conta dele e recebe avisos {REMINDER_DAYS.slice(0, -1).join(', ')} e {REMINDER_DAYS[REMINDER_DAYS.length - 1]} dia antes do vencimento.
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-400">
+              <BadgeCheck size={14} /> {loan.borrower_name} vê só o total que precisa pagar, na conta dele.
+            </p>
+            <button
+              onClick={() => handleRelease({ loanId: loan.id }, loan.borrower_name)}
+              className="shrink-0 text-ink-400 hover:text-red-600"
+              aria-label="Remover acesso do devedor"
+            >
+              <UserMinus size={15} />
+            </button>
+          </div>
         ) : loan.borrower_email ? (
           <p className="flex items-center gap-1.5 text-xs text-ink-500">
-            <Mail size={14} /> Acesso liberado quando {loan.borrower_name} criar conta com {loan.borrower_email}.
+            <Mail size={14} /> Acesso liberado quando {loan.borrower_name} criar conta com {loan.borrower_email}, ou com o código abaixo.
           </p>
         ) : (
-          <p className="text-xs text-ink-400">Sem acesso: edite e vincule {loan.borrower_name} para ele ver o quanto deve.</p>
+          <p className="text-xs text-ink-400">{loan.borrower_name} ainda não entrou. Mande o código abaixo para ele ver o quanto deve.</p>
         )}
         {loan.notes && <p className="text-sm text-ink-600 dark:text-ink-300">{loan.notes}</p>}
+      </div>
+
+      {/* Código de acesso */}
+      <div className="card p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <KeyRound size={16} className="text-ink-500" />
+          <h2 className="text-sm font-semibold text-ink-900 dark:text-ink-50">Código do empréstimo</h2>
+        </div>
+        <p className="text-xs text-ink-400">
+          Mande este código para o devedor e para os co-fundadores. Cada um entra com ele em Empréstimos &gt; Tenho um código.
+          O devedor vê só o total. O co-fundador vê só o que ele mesmo recebe.
+        </p>
+        <div className="flex items-center gap-2">
+          <p className="flex-1 rounded-xl bg-ink-50 dark:bg-ink-800 py-3 text-center text-xl font-bold tracking-widest text-ink-900 dark:text-ink-50 select-all">
+            {formatCode(loan.share_code)}
+          </p>
+          <button onClick={copyCode} className="btn-secondary h-12 px-4" aria-label="Copiar código">
+            <Copy size={16} />
+          </button>
+          <button onClick={handleRegenerate} className="btn-secondary h-12 px-4" aria-label="Gerar código novo">
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Meu resultado */}
@@ -186,17 +245,18 @@ export default function LoanDetail() {
 
               {f.funder_user_id ? (
                 <div className="space-y-1.5">
-                  <p className="flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-400">
-                    <BadgeCheck size={14} /> Vê o empréstimo na conta dele
-                  </p>
-                  <label className="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200">
-                    <input
-                      type="checkbox"
-                      checked={f.can_see_payments}
-                      onChange={(e) => updateFunderAccess(f.id, { can_see_payments: e.target.checked })}
-                    />
-                    Pode ver quanto o devedor pagou
-                  </label>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-400">
+                      <BadgeCheck size={14} /> Vê só o que ele mesmo recebe
+                    </p>
+                    <button
+                      onClick={() => handleRelease({ funderId: f.id }, f.funder_name)}
+                      className="text-ink-400 hover:text-red-600"
+                      aria-label="Remover acesso"
+                    >
+                      <UserMinus size={15} />
+                    </button>
+                  </div>
                   <label className="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200">
                     <input
                       type="checkbox"
@@ -211,7 +271,7 @@ export default function LoanDetail() {
                   <Mail size={14} /> Acesso liberado quando criar conta com {f.funder_email}.
                 </p>
               ) : (
-                <p className="text-xs text-ink-400">Sem acesso. Edite o empréstimo para vinculá-lo.</p>
+                <p className="text-xs text-ink-400">Ainda não entrou. Mande o código do empréstimo.</p>
               )}
 
               {payouts.length > 0 && (

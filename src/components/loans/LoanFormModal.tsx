@@ -211,14 +211,7 @@ export function LoanFormModal({
               </div>
               <div className="space-y-1.5">
                 <p className="label !mb-0">O que ele pode ver</p>
-                <label className="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200">
-                  <input
-                    type="checkbox"
-                    checked={f.canSeePayments}
-                    onChange={(e) => patchFunder(f.key, { canSeePayments: e.target.checked })}
-                  />
-                  Quanto o devedor já pagou
-                </label>
+                <p className="text-xs text-ink-400">Ele sempre vê o valor dele, a % dele e quando vai receber. Nunca vê o que você cobra do devedor.</p>
                 <label className="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200">
                   <input
                     type="checkbox"

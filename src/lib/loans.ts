@@ -1,8 +1,11 @@
 import type { LoanFull, LoanFunder, FunderPayment } from '../types/database'
 import { daysUntil } from './format'
 
-/** Dias de antecedência dos avisos (o banco manda também no dia do vencimento). */
-export const REMINDER_DAYS = [10, 7, 3, 1]
+/** Código do empréstimo em grupos de 5 (ABCDE-12345), fácil de ler e mandar. */
+export function formatCode(code: string): string {
+  const c = code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+  return c.length > 5 ? `${c.slice(0, 5)}-${c.slice(5)}` : c
+}
 
 export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100

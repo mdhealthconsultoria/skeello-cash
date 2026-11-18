@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Search, BadgeCheck, X } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { useMemo } from 'react'
+import { BadgeCheck, X } from 'lucide-react'
+import { useFollowing } from '../../hooks/useFollowing'
 import { Avatar } from '../ui/Avatar'
-import type { FoundUser } from '../../types/database'
 
 export interface PartyValue {
   name: string
@@ -12,9 +11,9 @@ export interface PartyValue {
 
 /**
  * Campo de pessoa de um empréstimo (devedor ou co-fundador).
- * Dá pra só digitar nome (+ e-mail opcional) ou vincular a um usuário do app.
- * Vinculado, ele vê o empréstimo na conta dele. Com e-mail de quem ainda não tem conta,
- * o acesso é liberado sozinho assim que a pessoa se cadastrar com esse e-mail.
+ * Dá pra só digitar o nome (+ e-mail opcional). Se a pessoa é um amigo seu no app,
+ * ele aparece como sugestão: só quem você segue aparece, nunca a lista de todo mundo.
+ * Quem não é seguido entra pelo código do empréstimo.
  */
 export function PartyPicker({
   value,
@@ -25,23 +24,14 @@ export function PartyPicker({
   onChange: (v: PartyValue) => void
   nameLabel: string
 }) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<FoundUser[]>([])
-  const [searching, setSearching] = useState(false)
+  const { following } = useFollowing()
 
-  useEffect(() => {
-    if (value.userId || query.trim().length < 2) {
-      setResults([])
-      return
-    }
-    setSearching(true)
-    const t = setTimeout(async () => {
-      const { data } = await supabase.rpc('search_users_by_name', { p_query: query })
-      setResults((data as FoundUser[]) ?? [])
-      setSearching(false)
-    }, 300)
-    return () => clearTimeout(t)
-  }, [query, value.userId])
+  const suggestions = useMemo(() => {
+    const q = value.name.trim().toLowerCase()
+    return following
+      .filter((u) => !q || u.name.toLowerCase().includes(q) || u.username.toLowerCase().startsWith(q.replace(/^@/, '')))
+      .slice(0, 5)
+  }, [following, value.name])
 
   return (
     <div className="space-y-3">
@@ -50,16 +40,17 @@ export function PartyPicker({
         <input
           required
           value={value.name}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
+          onChange={(e) => onChange({ ...value, name: e.target.value, userId: value.userId ? null : value.userId })}
           className="input"
           placeholder="Nome"
+          autoComplete="off"
         />
       </div>
 
       {value.userId ? (
         <div className="flex items-center justify-between gap-2 rounded-xl bg-brand-50 dark:bg-brand-500/10 px-3 py-2 text-sm text-brand-700 dark:text-brand-400">
           <span className="flex items-center gap-1.5">
-            <BadgeCheck size={16} /> Vinculado a um usuário do app. Ele já vê o empréstimo.
+            <BadgeCheck size={16} /> Amigo do app. Ele já vê o empréstimo na conta dele.
           </span>
           <button
             type="button"
@@ -72,8 +63,26 @@ export function PartyPicker({
         </div>
       ) : (
         <>
+          {suggestions.length > 0 && (
+            <div>
+              <p className="label">Seus amigos no app</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => onChange({ name: u.name, email: '', userId: u.id })}
+                    className="flex items-center gap-2 rounded-full border border-ink-100 dark:border-ink-700 pl-1 pr-3 py-1 hover:bg-ink-50 dark:hover:bg-ink-800 transition"
+                  >
+                    <Avatar src={u.avatar_url} name={u.name} size="sm" />
+                    <span className="text-sm text-ink-900 dark:text-ink-50">{u.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div>
-            <label className="label">E-mail (para liberar o acesso quando ele criar conta)</label>
+            <label className="label">E-mail (opcional)</label>
             <input
               type="email"
               value={value.email}
@@ -81,40 +90,6 @@ export function PartyPicker({
               className="input"
               placeholder="email@exemplo.com"
             />
-          </div>
-          <div>
-            <label className="label">Ou procure quem já tem conta (nome ou @usuário)</label>
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="input pl-9"
-                placeholder="Buscar no Skeello Cash"
-              />
-            </div>
-            {searching && <p className="text-xs text-ink-400 mt-1.5">Buscando...</p>}
-            {results.length > 0 && (
-              <div className="mt-2 rounded-xl border border-ink-100 dark:border-ink-700 divide-y divide-ink-100 dark:divide-ink-800">
-                {results.map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => {
-                      onChange({ name: value.name || u.name, email: '', userId: u.id })
-                      setQuery('')
-                      setResults([])
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-ink-50 dark:hover:bg-ink-800 transition"
-                  >
-                    <Avatar src={u.avatar_url} name={u.name} size="sm" />
-                    <span className="text-sm text-ink-900 dark:text-ink-50">
-                      {u.name} <span className="text-ink-400">@{u.username}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </>
       )}

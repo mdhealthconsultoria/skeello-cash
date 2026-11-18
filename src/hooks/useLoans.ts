@@ -173,11 +173,29 @@ export function useLoans() {
     return { error: err?.message ?? null }
   }
 
+  async function regenerateCode(loanId: string) {
+    const { error: err } = await supabase.rpc('regenerate_loan_code', { p_loan_id: loanId })
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
+  /** Tira o acesso de quem entrou (devedor ou co-fundador) e libera a vaga pro código. */
+  async function releaseAccess(target: { loanId: string } | { funderId: string }) {
+    const { error: err } =
+      'funderId' in target
+        ? await supabase.from('loan_funders').update({ funder_user_id: null }).eq('id', target.funderId)
+        : await supabase.from('loans').update({ borrower_user_id: null }).eq('id', target.loanId)
+    if (!err) await fetchLoans()
+    return { error: err?.message ?? null }
+  }
+
   return {
     loans,
     loading,
     error,
     refetch: fetchLoans,
+    regenerateCode,
+    releaseAccess,
     saveLoan,
     deleteLoan,
     setClosed,
@@ -187,6 +205,29 @@ export function useLoans() {
     deleteFunderPayment,
     updateFunderAccess,
   }
+}
+
+export interface CodeLookup {
+  owner_name: string | null
+  due_date: string
+  borrower_open: boolean
+  funders_open: { id: string; name: string }[]
+}
+
+/** Quem recebeu um código: confere de quem é e quais vagas estão livres. */
+export async function lookupLoanCode(code: string) {
+  const { data, error } = await supabase.rpc('lookup_loan_code', { p_code: code })
+  return { info: (data as CodeLookup) ?? null, error: error?.message ?? null }
+}
+
+/** Entra no empréstimo como devedor ou como co-fundador (numa vaga livre). */
+export async function redeemLoanCode(code: string, role: 'borrower' | 'funder', funderId?: string) {
+  const { error } = await supabase.rpc('redeem_loan_code', {
+    p_code: code,
+    p_role: role,
+    p_funder_id: funderId ?? null,
+  })
+  return { error: error?.message ?? null }
 }
 
 /** Empréstimos em que participo: como devedor (eu devo) e como co-fundador (vou receber). */

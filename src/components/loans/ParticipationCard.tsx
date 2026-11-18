@@ -115,8 +115,6 @@ export function BorrowingCard({ b }: { b: Borrowing }) {
       paid={b.paid}
       total={b.total}
       lines={[
-        { label: 'Valor emprestado', value: formatCurrency(b.principal) },
-        { label: `Juros (${String(b.borrower_rate).replace('.', ',')}%)`, value: formatCurrency(round2(b.total - b.principal)) },
         { label: 'Total a pagar', value: formatCurrency(b.total) },
         { label: 'Já pago', value: formatCurrency(b.paid) },
       ]}
@@ -132,18 +130,12 @@ export function BorrowingCard({ b }: { b: Borrowing }) {
 /** Visão de co-fundador: quanto vai receber, de quem e quando. */
 export function FundingCard({ f }: { f: Funding }) {
   const remaining = round2(Math.max(f.total - f.paid, 0))
-  const lines = [
+  const lines: { label: string; value: string }[] = [
     { label: 'Você emprestou', value: formatCurrency(f.amount) },
     { label: `Retorno combinado (${String(f.rate).replace('.', ',')}%)`, value: formatCurrency(round2(f.total - f.amount)) },
     { label: 'Total a receber', value: formatCurrency(f.total) },
     { label: 'Já recebido', value: formatCurrency(f.paid) },
   ]
-  if (f.can_see_payments && f.borrower_total !== null && f.borrower_paid !== null) {
-    lines.push({
-      label: 'O devedor já pagou',
-      value: `${formatCurrency(f.borrower_paid)} de ${formatCurrency(f.borrower_total)}`,
-    })
-  }
   return (
     <Shell
       title={`${f.owner_name ?? 'Alguém'} te deve`}

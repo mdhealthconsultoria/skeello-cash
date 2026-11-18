@@ -38,7 +38,7 @@ export default function People() {
           <p className="text-ink-400 text-sm">Quem está envolvido nas suas movimentações</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => navigate('/comunidade')} className="btn-secondary px-3 py-2" title="Pessoas no Skeello Cash">
+          <button onClick={() => navigate('/comunidade')} className="btn-secondary px-3 py-2" title="Amigos no Skeello Cash">
             <Users size={16} />
           </button>
           <button onClick={() => navigate('/pessoas/arquivadas')} className="btn-secondary px-3 py-2" title="Arquivadas">
@@ -59,8 +59,8 @@ export default function People() {
           <Users size={16} />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-ink-900 dark:text-ink-50">Descobrir pessoas no app</p>
-          <p className="text-xs text-ink-400">Veja quem mais usa o Skeello Cash e adicione direto</p>
+          <p className="text-sm font-medium text-ink-900 dark:text-ink-50">Amigos no app</p>
+          <p className="text-xs text-ink-400">Ache um amigo pelo @usuário e siga. Só quem você segue vira sugestão.</p>
         </div>
       </button>
 

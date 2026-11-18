@@ -16,6 +16,8 @@ const ICONS: Record<Notification['type'], typeof Bell> = {
   contact_added: Link2,
   loan_shared: Landmark,
   loan_due: Landmark,
+  loan_joined: Landmark,
+  reminder: Bell,
 }
 
 export default function Notifications() {

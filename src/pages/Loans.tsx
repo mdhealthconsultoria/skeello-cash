@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ChevronRight } from 'lucide-react'
+import { Plus, ChevronRight, KeyRound } from 'lucide-react'
 import { useLoans, useParticipations } from '../hooks/useLoans'
 import { LoanFormModal } from '../components/loans/LoanFormModal'
+import { JoinLoanModal } from '../components/loans/JoinLoanModal'
 import { BorrowingCard, FundingCard } from '../components/loans/ParticipationCard'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
@@ -15,9 +16,10 @@ type Tab = 'mine' | 'owe' | 'funded'
 export default function Loans() {
   const navigate = useNavigate()
   const { loans, loading, saveLoan } = useLoans()
-  const { borrowings, fundings } = useParticipations()
+  const { borrowings, fundings, refetch: refetchParticipations } = useParticipations()
   const [tab, setTab] = useState<Tab>('mine')
   const [formOpen, setFormOpen] = useState(false)
+  const [joinOpen, setJoinOpen] = useState(false)
 
   const rows = useMemo(() => loans.map((l) => ({ loan: l, s: loanSummary(l) })), [loans])
   const active = rows.filter((r) => !r.loan.closed)
@@ -41,9 +43,14 @@ export default function Loans() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-ink-900 dark:text-ink-50">Empréstimos</h1>
-        <button onClick={() => setFormOpen(true)} className="btn-primary">
-          <Plus size={16} /> Novo
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setJoinOpen(true)} className="btn-secondary">
+            <KeyRound size={15} /> Tenho um código
+          </button>
+          <button onClick={() => setFormOpen(true)} className="btn-primary">
+            <Plus size={16} /> Novo
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-1 p-1 rounded-xl bg-ink-100 dark:bg-ink-800">
@@ -105,7 +112,7 @@ export default function Loans() {
           <EmptyState
             illustration={<AnimatedMascot size={140} />}
             title="Você não deve nenhum empréstimo"
-            description="Quando alguém registrar um empréstimo para você, ele aparece aqui com o valor e o vencimento."
+            description="Recebeu um código? Toque em Tenho um código e ele aparece aqui com o total e o vencimento."
           />
         ) : (
           <div className="space-y-2.5">
@@ -120,7 +127,7 @@ export default function Loans() {
           <EmptyState
             illustration={<AnimatedMascot size={140} />}
             title="Nenhum empréstimo como co-fundador"
-            description="Quando alguém te incluir como co-fundador, você vê aqui quanto vai receber e quando."
+            description="Recebeu um código como co-fundador? Toque em Tenho um código e você vê aqui quanto vai receber e quando."
           />
         ) : (
           <div className="space-y-2.5">
@@ -129,6 +136,15 @@ export default function Loans() {
             ))}
           </div>
         ))}
+
+      <JoinLoanModal
+        open={joinOpen}
+        onClose={() => setJoinOpen(false)}
+        onJoined={(role) => {
+          refetchParticipations()
+          setTab(role === 'borrower' ? 'owe' : 'funded')
+        }}
+      />
 
       <LoanFormModal
         open={formOpen}

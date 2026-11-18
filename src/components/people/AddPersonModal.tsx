@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import toast from 'react-hot-toast'
 import { Camera, Link2, X, CheckCircle2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { Avatar } from '../ui/Avatar'
 import { usePeople } from '../../hooks/usePeople'
+import { useFollowing } from '../../hooks/useFollowing'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { sendPush } from '../../lib/push'
@@ -24,7 +25,8 @@ export function AddPersonModal({
   presetUser?: FoundUser | null
 }) {
   const { user, profile } = useAuth()
-  const { createPerson, updatePerson, searchUsersByName } = usePeople()
+  const { createPerson, updatePerson } = usePeople()
+  const { following, refetch: refetchFollowing } = useFollowing()
   const [name, setName] = useState(editPerson?.name ?? presetUser?.name ?? '')
   const [nickname, setNickname] = useState(editPerson?.nickname ?? '')
   const [phone, setPhone] = useState(editPerson?.phone ?? '')
@@ -35,34 +37,22 @@ export function AddPersonModal({
   const [loading, setLoading] = useState(false)
 
   const [results, setResults] = useState<FoundUser[]>([])
-  const [searching, setSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [linkedUser, setLinkedUser] = useState<FoundUser | null>(presetUser ?? null)
   const [linkedUserId, setLinkedUserId] = useState<string | null>(editPerson?.linked_user_id ?? presetUser?.id ?? null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // sugestões: só quem eu já sigo (nunca a lista de todos os usuários)
   useEffect(() => {
-    if (linkedUser) {
+    if (linkedUser || name.trim().length < 1) {
+      setResults([])
       setShowResults(false)
       return
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (name.trim().length < 2) {
-      setResults([])
-      return
-    }
-    debounceRef.current = setTimeout(async () => {
-      setSearching(true)
-      const { users } = await searchUsersByName(name)
-      setSearching(false)
-      setResults(users)
-      setShowResults(true)
-    }, 350)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, linkedUser])
+    const q = name.trim().toLowerCase().replace(/^@/, '')
+    const matches = following.filter((u) => u.name.toLowerCase().includes(q) || u.username.toLowerCase().startsWith(q))
+    setResults(matches.slice(0, 6))
+    setShowResults(matches.length > 0)
+  }, [name, linkedUser, following])
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -135,6 +125,7 @@ export function AddPersonModal({
       )
     }
 
+    if (isNewLink) refetchFollowing()
     toast.success(editPerson ? 'Pessoa atualizada!' : 'Pessoa adicionada!')
     onCreated?.(result.data as Person)
     onClose()
@@ -177,14 +168,10 @@ export function AddPersonModal({
             placeholder="Nome completo"
             autoComplete="off"
           />
-          {searching && (
-            <span className="absolute right-3 top-9 w-4 h-4 border-2 border-ink-300 border-t-transparent rounded-full animate-spin" />
-          )}
-
           {showResults && results.length > 0 && (
             <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl shadow-lg max-h-56 overflow-y-auto">
               <p className="px-3 pt-2 pb-1 text-[11px] text-ink-400 uppercase tracking-wide sticky top-0 bg-white dark:bg-ink-900">
-                Usuários do Skeello Cash
+                Seus amigos no app
               </p>
               {results.map((r) => (
                 <button
@@ -223,7 +210,7 @@ export function AddPersonModal({
         )}
         {!linkedUser && (
           <p className="text-xs text-ink-400 -mt-2 flex items-center gap-1">
-            <Link2 size={12} /> Digite o nome ou @usuário pra achar e seguir quem já usa o Skeello Cash.
+            <Link2 size={12} /> Pode digitar só o nome. Se for um amigo seu no app, ele aparece aqui pra você escolher.
           </p>
         )}
 

@@ -11,6 +11,7 @@ import { exportDebtsToCsv, exportDebtsToPdf } from '../lib/export'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { InstallAppButton } from '../components/ui/InstallAppButton'
+import { ReminderRules } from '../components/settings/ReminderRules'
 import type { Theme, UserSettings } from '../types/database'
 
 export default function Settings() {
@@ -254,7 +255,7 @@ export default function Settings() {
             </span>
             <div>
               <p className="font-semibold text-ink-900 dark:text-ink-50">Painel administrativo</p>
-              <p className="text-xs text-ink-400">Visão geral de todos os usuários e dívidas</p>
+              <p className="text-xs text-ink-400">Todos os perfis, empréstimos e configurações</p>
             </div>
           </div>
           <ChevronRight size={18} className="text-ink-300" />
@@ -320,6 +321,8 @@ export default function Settings() {
             onChange={(v) => updateSetting({ notify_summary: v })}
           />
         </div>
+
+        <ReminderRules />
       </section>
 
       {/* Privacidade / export */}

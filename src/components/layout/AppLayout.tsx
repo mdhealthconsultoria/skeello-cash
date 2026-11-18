@@ -23,18 +23,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { unreadCount } = useNotifications()
   const [quickAddOpen, setQuickAddOpen] = useState(false)
 
-  // Garante os avisos de vencimento de empréstimo (10, 7, 3 e 1 dia) mesmo sem agendador no servidor.
+  // Gera os lembretes que o próprio usuário criou (Configurações > Lembretes) mesmo sem agendador no servidor.
   // É idempotente: cada aviso sai uma vez só. No máximo uma chamada por dia neste aparelho.
   useEffect(() => {
     if (!user) return
-    const key = `loan-reminders:${new Date().toISOString().slice(0, 10)}`
+    const key = `my-reminders:${user.id}:${new Date().toISOString().slice(0, 10)}`
     try {
       if (localStorage.getItem(key)) return
       localStorage.setItem(key, '1')
     } catch {
       // sem localStorage: só roda de novo na próxima abertura
     }
-    supabase.rpc('generate_loan_reminders').then(() => {})
+    supabase.rpc('generate_my_reminders').then(() => {})
   }, [user])
 
   return (
