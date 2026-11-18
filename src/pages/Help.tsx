@@ -148,6 +148,33 @@ const TOPICS: Topic[] = [
     ),
   },
   {
+    title: 'Como ligar as notificações no celular',
+    body: (
+      <>
+        <p className="font-medium mb-1">iPhone (iOS 16.4 ou mais novo):</p>
+        <Steps
+          items={[
+            'Abra o site no Safari e toque em compartilhar > "Adicionar à Tela de Início".',
+            'Abra o Skeello Cash pelo ícone novo da tela inicial. No iPhone, só funciona assim.',
+            'Vá em Configurações, ligue "Notificações no celular" e toque em Permitir.',
+          ]}
+        />
+        <p className="font-medium mt-3 mb-1">Android e computador:</p>
+        <Steps
+          items={[
+            'Abra o site no Chrome.',
+            'Vá em Configurações, ligue "Notificações no celular" e toque em Permitir.',
+            'Toque em "Enviar uma notificação de teste" para ver se está chegando.',
+          ]}
+        />
+        <p className="mt-3">
+          Se aparecer "bloqueadas", libere nas configurações do aparelho: Chrome (cadeado ao lado do endereço &gt;
+          Permissões) ou, no iPhone, Ajustes &gt; Notificações &gt; Skeello Cash.
+        </p>
+      </>
+    ),
+  },
+  {
     title: 'Vencimentos, extrato e análises',
     body: (
       <ul className="list-disc pl-5 space-y-1.5">

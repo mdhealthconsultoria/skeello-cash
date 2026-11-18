@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Trash2, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
+import { Toggle } from '../ui/Toggle'
 import { useReminderRules } from '../../hooks/useReminderRules'
 import type { ReminderRule } from '../../types/database'
 
@@ -49,12 +50,7 @@ export function ReminderRules() {
               </p>
               <p className="text-xs text-ink-400">{dayLabel(r.days_before)}</p>
             </div>
-            <input
-              type="checkbox"
-              checked={r.enabled}
-              onChange={(e) => toggleRule(r.id, e.target.checked)}
-              aria-label="Ligar ou desligar"
-            />
+            <Toggle checked={r.enabled} onChange={(v) => toggleRule(r.id, v)} ariaLabel="Ligar ou desligar" />
             <button onClick={() => removeRule(r.id)} className="text-ink-300 hover:text-red-600" aria-label="Apagar lembrete">
               <Trash2 size={15} />
             </button>

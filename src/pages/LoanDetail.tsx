@@ -7,6 +7,7 @@ import { LoanFormModal } from '../components/loans/LoanFormModal'
 import { LoanPaymentModal } from '../components/loans/LoanPaymentModal'
 import { formatCurrency, formatDate } from '../lib/format'
 import { dueLabel, dueTone, formatCode, loanSummary } from '../lib/loans'
+import { Toggle } from '../components/ui/Toggle'
 
 export default function LoanDetail() {
   const { id } = useParams()
@@ -257,14 +258,7 @@ export default function LoanDetail() {
                       <UserMinus size={15} />
                     </button>
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200">
-                    <input
-                      type="checkbox"
-                      checked={f.can_see_borrower}
-                      onChange={(e) => updateFunderAccess(f.id, { can_see_borrower: e.target.checked })}
-                    />
-                    Pode ver o nome do devedor
-                  </label>
+                  <Toggle checked={f.can_see_borrower} onChange={(v) => updateFunderAccess(f.id, { can_see_borrower: v })} label="Pode ver o nome do devedor" />
                 </div>
               ) : f.funder_email ? (
                 <p className="flex items-center gap-1.5 text-xs text-ink-500">
