@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Plus, Archive, Users } from 'lucide-react'
+import { Plus, Archive } from 'lucide-react'
 import { usePeople } from '../hooks/usePeople'
 import { useDebts } from '../hooks/useDebts'
 import { Avatar } from '../components/ui/Avatar'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
+import { FriendsPanel } from '../components/people/FriendsPanel'
+import { usePendingRequestCount } from '../hooks/useFriends'
 import { AddPersonModal } from '../components/people/AddPersonModal'
 import { formatCurrency } from '../lib/format'
 
@@ -15,12 +17,16 @@ export default function People() {
   const { people, loading } = usePeople()
   const { debts } = useDebts({ includeArchived: false })
   const [addOpen, setAddOpen] = useState(false)
+  const [tab, setTab] = useState<'people' | 'requests'>(() => ((location.state as { tab?: string } | null)?.tab === 'requests' ? 'requests' : 'people'))
+  const pending = usePendingRequestCount()
 
   useEffect(() => {
-    if ((location.state as { openAdd?: boolean })?.openAdd) {
+    const st = location.state as { openAdd?: boolean; tab?: string } | null
+    if (st?.openAdd) {
       setAddOpen(true)
       window.history.replaceState({}, '')
     }
+    if (st?.tab === 'requests') setTab('requests')
   }, [location.state])
 
   function balanceFor(personId: string) {
@@ -38,9 +44,6 @@ export default function People() {
           <p className="text-ink-400 text-sm">Quem está envolvido nas suas movimentações</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => navigate('/comunidade')} className="btn-secondary px-3 py-2" title="Amigos no Skeello Cash">
-            <Users size={16} />
-          </button>
           <button onClick={() => navigate('/pessoas/arquivadas')} className="btn-secondary px-3 py-2" title="Arquivadas">
             <Archive size={16} />
           </button>
@@ -51,19 +54,30 @@ export default function People() {
         </div>
       </div>
 
-      <button
-        onClick={() => navigate('/comunidade')}
-        className="w-full card p-3.5 flex items-center gap-3 text-left hover:shadow-md transition"
-      >
-        <span className="w-9 h-9 rounded-xl bg-ink-100 dark:bg-ink-800 flex items-center justify-center text-ink-700 dark:text-ink-300 shrink-0">
-          <Users size={16} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-ink-900 dark:text-ink-50">Amigos no app</p>
-          <p className="text-xs text-ink-400">Ache um amigo pelo @usuário e siga. Só quem você segue vira sugestão.</p>
-        </div>
-      </button>
+      <div className="flex gap-1 p-1 rounded-xl bg-ink-100 dark:bg-ink-800">
+        <button
+          onClick={() => setTab('people')}
+          className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            tab === 'people' ? 'bg-white dark:bg-ink-900 text-ink-900 dark:text-ink-50 shadow-sm' : 'text-ink-500 dark:text-ink-400'
+          }`}
+        >
+          Pessoas
+        </button>
+        <button
+          onClick={() => setTab('requests')}
+          className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            tab === 'requests' ? 'bg-white dark:bg-ink-900 text-ink-900 dark:text-ink-50 shadow-sm' : 'text-ink-500 dark:text-ink-400'
+          }`}
+        >
+          Solicitações e amigos
+          {pending > 0 && <span className="ml-1.5 rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] text-white">{pending}</span>}
+        </button>
+      </div>
 
+      {tab === 'requests' && <FriendsPanel />}
+
+      {tab === 'people' && (
+        <>
       {loading ? (
         <div className="grid sm:grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -104,6 +118,9 @@ export default function People() {
             )
           })}
         </div>
+      )}
+
+        </>
       )}
 
       <AddPersonModal open={addOpen} onClose={() => setAddOpen(false)} />

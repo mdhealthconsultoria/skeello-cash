@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { initials } from '../../lib/format'
 
 export function Avatar({
@@ -16,11 +17,16 @@ export function Avatar({
     xl: 'w-24 h-24 text-2xl',
   }
 
-  if (src) {
+  // foto que não carrega (link quebrado) cai nas iniciais, nunca em ícone de imagem quebrada
+  const [broken, setBroken] = useState<string | null>(null)
+
+  if (src && broken !== src) {
     return (
       <img
         src={src}
         alt={name}
+        onError={() => setBroken(src)}
+        referrerPolicy="no-referrer"
         className={`${sizes[size]} rounded-full object-cover shrink-0 border border-ink-100 dark:border-ink-800`}
       />
     )

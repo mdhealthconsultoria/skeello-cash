@@ -50,6 +50,26 @@ const TOPICS: Topic[] = [
     ),
   },
   {
+    title: 'Amigos e solicitações',
+    body: (
+      <>
+        <p className="mb-2">
+          Para enviar convites de cobrança dentro do app, vocês precisam ser amigos. Qualquer pessoa pode pedir, mas só vira amigo quando
+          a outra aceita.
+        </p>
+        <Steps
+          items={[
+            'Vá em Pessoas > Solicitações e amigos.',
+            'Passe o seu @usuário (botão Copiar) ou toque em Convidar para mandar o link pelo WhatsApp.',
+            'Para adicionar alguém, digite o @usuário completo dela e toque em Adicionar.',
+            'Quem recebe a solicitação aceita ou recusa na mesma tela (ou pelo aviso no sino).',
+          ]}
+        />
+        <p className="mt-2">Ao aceitar, vocês aparecem um na lista do outro, com foto, e viram sugestão em dívidas e empréstimos.</p>
+      </>
+    ),
+  },
+  {
     title: 'Dívidas: a receber e a pagar',
     body: (
       <>

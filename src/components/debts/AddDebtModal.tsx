@@ -5,6 +5,7 @@ import { Modal } from '../ui/Modal'
 import { Toggle } from '../ui/Toggle'
 import { usePeople } from '../../hooks/usePeople'
 import { useCategories } from '../../hooks/useCategories'
+import { useFriends } from '../../hooks/useFriends'
 import { useDebts } from '../../hooks/useDebts'
 import { useAuth } from '../../contexts/AuthContext'
 import { sendPush } from '../../lib/push'
@@ -29,6 +30,7 @@ export function AddDebtModal({
   const { profile } = useAuth()
   const { people } = usePeople()
   const { categories } = useCategories()
+  const { friends, available: friendsAvailable } = useFriends()
   const { debts, createDebt, updateDebt } = useDebts()
 
   const [type, setType] = useState<DebtType>(editDebt?.type ?? defaultType)
@@ -59,7 +61,10 @@ export function AddDebtModal({
   }, [open, editDebt?.id])
 
   const selectedPerson = useMemo(() => people.find((p) => p.id === personId), [people, personId])
-  const hasApp = Boolean(selectedPerson?.linked_user_id)
+  // convite só para amigo que aceitou (se o banco ainda não tem amizades, vale o vínculo antigo)
+  const linkedUser = selectedPerson?.linked_user_id ?? null
+  const isFriend = Boolean(linkedUser) && (!friendsAvailable || friends.some((f) => f.id === linkedUser))
+  const hasApp = isFriend
   // convite só vai se a pessoa tem o app E você quer; senão é um registro só seu (e você cobra por fora)
   const isShared = hasApp && invite
 
@@ -227,7 +232,9 @@ export function AddDebtModal({
           )}
           {!editDebt && selectedPerson && !hasApp && (
             <p className="text-xs text-ink-400 mt-1.5">
-              {selectedPerson.name} não usa o app? Sem problema: fica registrado só para você. Depois use "Cobrar" para mandar a cobrança pelo WhatsApp.
+              {linkedUser
+                ? `${selectedPerson.name} ainda não aceitou ser seu amigo no app, então fica registrado só para você. Peça amizade em Pessoas > Solicitações e amigos para enviar convites.`
+                : `${selectedPerson.name} não usa o app? Sem problema: fica registrado só para você. Depois use "Cobrar" para mandar a cobrança pelo WhatsApp.`}
             </p>
           )}
           {isSharedDebt && (

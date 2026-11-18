@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bell, Link2, HandCoins, CheckCheck, Landmark } from 'lucide-react'
+import { ArrowLeft, Bell, Link2, HandCoins, CheckCheck, Landmark, UserPlus } from 'lucide-react'
 import { useNotifications } from '../hooks/useNotifications'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AnimatedMascot } from '../components/illustrations/AnimatedMascot'
@@ -19,6 +19,8 @@ const ICONS: Record<Notification['type'], typeof Bell> = {
   loan_due: Landmark,
   loan_joined: Landmark,
   reminder: Bell,
+  friend_request: UserPlus,
+  friend_accepted: UserPlus,
 }
 
 export default function Notifications() {
@@ -54,7 +56,10 @@ export default function Notifications() {
             return (
               <button
                 key={n.id}
-                onClick={() => !n.read && markAsRead(n.id)}
+                onClick={() => {
+                  if (!n.read) markAsRead(n.id)
+                  if (n.type === 'friend_request' || n.type === 'friend_accepted') navigate('/pessoas', { state: { tab: 'requests' } })
+                }}
                 className={`w-full card p-3.5 flex items-start gap-3 text-left transition ${
                   !n.read ? 'border-brand-200 dark:border-brand-500/30' : ''
                 }`}

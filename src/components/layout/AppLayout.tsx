@@ -4,6 +4,7 @@ import { Home, Users, Wallet, BarChart3, Settings, Plus, LogOut, Search, Bell, L
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { useNotifications } from '../../hooks/useNotifications'
+import { usePendingRequestCount } from '../../hooks/useFriends'
 import { Avatar } from '../ui/Avatar'
 import { Logo } from '../ui/Logo'
 import { QuickAddMenu } from './QuickAddMenu'
@@ -29,6 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
   const { unreadCount } = useNotifications()
+  const pendingFriends = usePendingRequestCount()
   const [quickAddOpen, setQuickAddOpen] = useState(false)
 
   // Gera os lembretes que o próprio usuário criou (Configurações > Lembretes) mesmo sem agendador no servidor.
@@ -43,6 +45,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       // sem localStorage: só roda de novo na próxima abertura
     }
     supabase.rpc('generate_my_reminders').then(() => {})
+    // mantém a foto dos amigos igual à foto atual do perfil deles
+    supabase.rpc('sync_friend_photos').then(() => {})
   }, [user])
 
   return (
@@ -68,7 +72,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 }`
               }
             >
-              <item.icon size={18} />
+              <span className="relative inline-flex">
+                <item.icon size={18} />
+                {item.to === '/pessoas' && pendingFriends > 0 && (
+                  <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-1 rounded-full bg-brand-500 text-white text-[9px] leading-[14px] text-center">{pendingFriends}</span>
+                )}
+              </span>
               {item.label}
             </NavLink>
           ))}
@@ -161,7 +170,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 }`
               }
             >
-              <item.icon size={19} />
+              <span className="relative inline-flex">
+                <item.icon size={19} />
+                {item.to === '/pessoas' && pendingFriends > 0 && (
+                  <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-1 rounded-full bg-brand-500 text-white text-[9px] leading-[14px] text-center">{pendingFriends}</span>
+                )}
+              </span>
               <span className="truncate max-w-full">{item.shortLabel}</span>
             </NavLink>
           ))}
@@ -187,7 +201,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 }`
               }
             >
-              <item.icon size={19} />
+              <span className="relative inline-flex">
+                <item.icon size={19} />
+                {item.to === '/pessoas' && pendingFriends > 0 && (
+                  <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-1 rounded-full bg-brand-500 text-white text-[9px] leading-[14px] text-center">{pendingFriends}</span>
+                )}
+              </span>
               <span className="truncate max-w-full">{item.shortLabel}</span>
             </NavLink>
           ))}

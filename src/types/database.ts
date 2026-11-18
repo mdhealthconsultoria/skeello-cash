@@ -107,7 +107,7 @@ export interface Notification {
     | 'loan_shared'
     | 'loan_due'
     | 'loan_joined'
-    | 'reminder'
+    | 'reminder' | 'friend_request' | 'friend_accepted'
   message: string
   read: boolean
   created_at: string
